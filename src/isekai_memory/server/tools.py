@@ -1,4 +1,11 @@
-"""MCP tool catalog for Artifact Registry, Policy, and Work Handoff."""
+"""MCP tool catalog for Work Handoff and Repository Registry.
+
+Artifact publish/fetch/resolve tools have been removed — artifacts are now
+distributed via Git Releases and installed locally by ``isekai init/update``.
+
+Policy tools are commented out for future expansion when policy-based
+version resolution is needed again.
+"""
 
 from __future__ import annotations
 
@@ -11,69 +18,82 @@ CLASSIFICATION = {"enum": ["public", "internal", "confidential", "restricted"]}
 CLAIM_TOKEN = {"type": "string", "minLength": 32, "maxLength": 256, "pattern": "^[A-Za-z0-9_-]+$"}
 CLAIM_REASON = {"enum": ["retryable", "processing_failed", "shutdown", "cancelled"]}
 
+# ---------------------------------------------------------------------------
+# Removed: memory_artifact_resolve, memory_artifact_fetch, memory_artifact_publish
+#
+# Artifacts are now built in CI, published to Git Releases, and installed
+# locally via ``isekai init --foundation <path> --preset <path>``.
+# The Memory server no longer stores or serves artifact archives.
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Commented out for future expansion:
+# memory_policy_upsert, memory_policy_delete
+#
+# Policy-based version resolution may be reintroduced when the repository
+# registry supports automatic upgrade notifications.  The policy engine
+# (registry/policy.py) is preserved and can be re-enabled by uncommenting
+# the entries below and reconnecting the dispatcher.
+# ---------------------------------------------------------------------------
+# {
+#     "name": "memory_policy_upsert",
+#     "description": "Create or update one deterministic organization artifact policy.",
+#     "inputSchema": {
+#         "type": "object",
+#         "required": ["organization_id", "project_pattern", "kind", "artifact_id", "version_range"],
+#         "properties": {
+#             "organization_id": SHORT_ID, "project_pattern": {"type": "string", "minLength": 1, "maxLength": 128},
+#             "kind": KIND, "artifact_id": SHORT_ID,
+#             "version_range": {"type": "string", "minLength": 1, "maxLength": 128},
+#             "required": {"type": "boolean"}, "priority": {"type": "integer", "minimum": -100000, "maximum": 100000},
+#         },
+#         "additionalProperties": False,
+#     },
+# },
+# {
+#     "name": "memory_policy_delete",
+#     "description": "Delete an organization artifact policy.",
+#     "inputSchema": {
+#         "type": "object", "required": ["organization_id", "policy_id"],
+#         "properties": {"organization_id": SHORT_ID, "policy_id": {"type": "string", "format": "uuid"}},
+#         "additionalProperties": False,
+#     },
+# },
+
 TOOLS: list[dict[str, Any]] = [
+    # --- Repository Registry -------------------------------------------------
     {
-        "name": "memory_artifact_resolve",
-        "description": "Resolve required artifacts for the authenticated project using organization policy.",
-        "inputSchema": {
-            "type": "object", "required": ["project_id", "organization_id"],
-            "properties": {"project_id": SHORT_ID, "organization_id": SHORT_ID},
-            "additionalProperties": False,
-        },
-    },
-    {
-        "name": "memory_artifact_fetch",
-        "description": "Fetch an immutable artifact archive after logical digest verification.",
-        "inputSchema": {
-            "type": "object", "required": ["artifact_id", "kind", "version", "expected_artifact_digest"],
-            "properties": {
-                "artifact_id": SHORT_ID, "kind": KIND,
-                "version": {"type": "string", "minLength": 1, "maxLength": 64},
-                "expected_artifact_digest": DIGEST,
-            },
-            "additionalProperties": False,
-        },
-    },
-    {
-        "name": "memory_artifact_publish",
-        "description": "Verify and publish a Core-compatible artifact archive.",
+        "name": "memory_repo_list",
+        "description": (
+            "List registered artifact repositories. "
+            "Each entry includes the repository URL, tracked artifact kinds, "
+            "and the latest known release version."
+        ),
         "inputSchema": {
             "type": "object",
-            "required": ["artifact_id", "kind", "version", "archive_base64", "manifest_digest", "artifact_digest", "archive_digest"],
             "properties": {
-                "artifact_id": SHORT_ID, "kind": KIND,
-                "version": {"type": "string", "minLength": 1, "maxLength": 64},
-                "archive_base64": {"type": "string", "minLength": 1},
-                "manifest_digest": DIGEST, "artifact_digest": DIGEST, "archive_digest": DIGEST,
-                "metadata": {"type": "object"},
+                "kind": KIND,
             },
             "additionalProperties": False,
         },
     },
     {
-        "name": "memory_policy_upsert",
-        "description": "Create or update one deterministic organization artifact policy.",
+        "name": "memory_repo_check_updates",
+        "description": (
+            "Check registered repositories for newer artifact releases. "
+            "Returns a summary of available updates per repository. "
+            "The user decides whether to apply each update."
+        ),
         "inputSchema": {
             "type": "object",
-            "required": ["organization_id", "project_pattern", "kind", "artifact_id", "version_range"],
             "properties": {
-                "organization_id": SHORT_ID, "project_pattern": {"type": "string", "minLength": 1, "maxLength": 128},
-                "kind": KIND, "artifact_id": SHORT_ID,
-                "version_range": {"type": "string", "minLength": 1, "maxLength": 128},
-                "required": {"type": "boolean"}, "priority": {"type": "integer", "minimum": -100000, "maximum": 100000},
+                "repo_url": {"type": "string", "minLength": 1, "maxLength": 2048},
+                "kind": KIND,
             },
             "additionalProperties": False,
         },
     },
-    {
-        "name": "memory_policy_delete",
-        "description": "Delete an organization artifact policy.",
-        "inputSchema": {
-            "type": "object", "required": ["organization_id", "policy_id"],
-            "properties": {"organization_id": SHORT_ID, "policy_id": {"type": "string", "format": "uuid"}},
-            "additionalProperties": False,
-        },
-    },
+    # --- Work Handoff --------------------------------------------------------
     {
         "name": "memory_handoff_push",
         "description": "Validate and register a completed Core Task/Result pair for handoff.",

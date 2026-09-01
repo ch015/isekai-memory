@@ -91,7 +91,7 @@ def test_validate_protocol_version_rejects_unsupported() -> None:
 
 def test_input_schema_rejects_extra_and_missing_fields() -> None:
     with pytest.raises(MemoryToolError) as raised:
-        validate_tool_arguments("memory_artifact_publish", {"unexpected": True})
+        validate_tool_arguments("memory_handoff_push", {"unexpected": True})
     assert raised.value.code == -32602
     assert raised.value.data["error_code"] == "MEM-TOOL-0002"
 
@@ -99,7 +99,7 @@ def test_input_schema_rejects_extra_and_missing_fields() -> None:
 def test_read_only_principal_cannot_publish() -> None:
     principal = Principal("user-1", "project-1", frozenset({"read"}))
     with pytest.raises(MemoryToolError) as raised:
-        authorize_tool(principal, "memory_artifact_publish", {})
+        authorize_tool(principal, "memory_handoff_push", {"project_id": "project-1"})
     assert raised.value.http_status == 403
 
 
@@ -133,7 +133,7 @@ async def test_tools_list_returns_cacheable_result() -> None:
     assert result["resultType"] == "complete"
     assert result["ttlMs"] == 3_600_000
     assert result["cacheScope"] == "public"
-    assert len(result["tools"]) == 12
+    assert len(result["tools"]) == 9
 
 
 @pytest.mark.asyncio

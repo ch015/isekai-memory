@@ -31,13 +31,18 @@ class ToolDispatcher:
             pull_handoff,
             push_handoff,
         )
-        from isekai_memory.registry.catalog import fetch_artifact, publish_artifact, resolve_artifacts
-        from isekai_memory.registry.policy import delete_artifact_policy, upsert_artifact_policy
+        from isekai_memory.registry.repo import check_repo_updates, list_repos
 
         validate_tool_arguments(tool_name, arguments)
         authorize_tool(principal, tool_name, arguments)
-        if tool_name == "memory_artifact_publish":
-            return await publish_artifact(arguments, settings=self.settings, published_by=principal.user_id)
+
+        # --- Repository Registry ----------------------------------------------
+        if tool_name == "memory_repo_list":
+            return await list_repos(arguments, settings=self.settings)
+        if tool_name == "memory_repo_check_updates":
+            return await check_repo_updates(arguments, settings=self.settings)
+
+        # --- Work Handoff -----------------------------------------------------
         if tool_name == "memory_handoff_push":
             return await push_handoff(arguments, settings=self.settings, from_user=principal.user_id)
         if tool_name == "memory_handoff_pull":
@@ -61,14 +66,10 @@ class ToolDispatcher:
             if tool_name == "memory_handoff_claim":
                 keyword_arguments["settings"] = self.settings
             return await recoverable_handler(arguments, **keyword_arguments)
-        handlers = {
-            "memory_artifact_resolve": resolve_artifacts,
-            "memory_artifact_fetch": fetch_artifact,
-            "memory_policy_upsert": upsert_artifact_policy,
-            "memory_policy_delete": delete_artifact_policy,
+        simple_handlers = {
             "memory_handoff_list": list_handoffs,
         }
-        handler = handlers.get(tool_name)
+        handler = simple_handlers.get(tool_name)
         if handler is None:
             raise MemoryToolError(f"Tool '{tool_name}' is not recognized", code=-32602, data={"error_code": "MEM-TOOL-0001"})
         return await handler(arguments)

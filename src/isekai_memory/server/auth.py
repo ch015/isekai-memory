@@ -55,11 +55,8 @@ async def verify_token(raw_token: str | None) -> Principal:
 
 
 _TOOL_SCOPES = {
-    "memory_artifact_resolve": "read",
-    "memory_artifact_fetch": "read",
-    "memory_artifact_publish": "write",
-    "memory_policy_upsert": "admin",
-    "memory_policy_delete": "admin",
+    "memory_repo_list": "read",
+    "memory_repo_check_updates": "read",
     "memory_handoff_push": "write",
     "memory_handoff_list": "read",
     "memory_handoff_pull": "write",
@@ -69,7 +66,6 @@ _TOOL_SCOPES = {
     "memory_handoff_nack": "write",
 }
 _PROJECT_SCOPED_TOOLS = {
-    "memory_artifact_resolve",
     "memory_handoff_push",
     "memory_handoff_list",
     "memory_handoff_pull",

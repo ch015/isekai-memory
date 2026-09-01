@@ -1,10 +1,17 @@
-# ISEKAI Memory Design (v0.2)
+# ISEKAI Memory Design (v0.3)
 
 ## 1. Scope
 
-`isekai-memory` is a standalone PostgreSQL-backed Artifact Registry and Work Handoff MCP server. Phase 1–5 and the independent Phase 6 recoverable-handoff server track are implemented here. Core-side automatic acquisition and context injection require the `isekai-core` checkout.
+`isekai-memory` is a standalone PostgreSQL-backed Work Handoff and Repository Registry MCP server. Handoff (Phase 1–6 recoverable-handoff server track) is implemented here. Core-side automatic acquisition and context injection are implemented in the `isekai-core` repository (`src/isekai/memory/`); this server provides the handoff and registry endpoints that Core consumes.
+
+Artifact distribution has moved to Git Releases. Foundation and Preset archives are built in CI, published to each repository's releases, and installed locally via `isekai init/update`. The Memory server no longer stores or serves artifact binaries.
 
 Out of scope: Redis, CRDT, vector search, dashboards, multi-region replication, Kubernetes, and deployment templates.
+
+### Removed / deferred features
+
+- **Artifact publish/fetch/resolve tools** — removed. The artifact registry code (`registry/catalog.py`, `registry/verification.py`) is retained in the codebase for reference but is no longer connected to the MCP tool dispatcher.
+- **Policy upsert/delete tools** — commented out for future expansion. The policy engine (`registry/policy.py`) with Core-compatible SemVer resolution is preserved and can be re-enabled when policy-based version resolution is needed. Uncomment the tool entries in `server/tools.py` and reconnect the dispatcher in `main.py`.
 
 ## 2. Transports and protocol
 
@@ -32,48 +39,32 @@ Principal(user_id, project_id, scopes)
 
 Scopes:
 
-- `read`: resolve/fetch artifacts and list handoffs
-- `write`: publish artifacts and push/pull/claim/get/ack/nack handoffs
-- `admin`: policy upsert/delete and all lower scopes
+- `read`: list repos, check updates, and list handoffs
+- `write`: push/pull/claim/get/ack/nack handoffs
+- `admin`: all lower scopes (reserved for future policy tools)
 
-Project-scoped operations compare the request `project_id` with the principal project. `from_user`, `claimed_by`, and `published_by` are derived from `Principal.user_id`.
+Project-scoped operations compare the request `project_id` with the principal project. `from_user` and `claimed_by` are derived from `Principal.user_id`.
 
 Token lifecycle is administered by `--issue-token` and `--revoke-token`. Revoked and expired tokens are rejected.
 
-## 4. Artifact contract
+## 4. Repository registry
 
-Accepted artifacts are deterministic-style gzip tar archives containing only regular files:
+Artifact repositories are configured via the server config file (`repos` key). Each entry tracks a Git repository URL, the artifact kind it provides, and its artifact identity:
 
-```text
-manifest.json
-<every path declared by manifest.files>
+```json
+{
+  "repos": [
+    {"url": "https://github.com/org/isekai-foundation", "kind": "foundation", "artifact_id": "standard-foundation", "current_version": "2.0.0"},
+    {"url": "https://github.com/org/isekai-presets", "kind": "preset", "artifact_id": "development", "current_version": "2.0.0"}
+  ]
+}
 ```
 
-The server rejects unsafe/duplicate paths, non-regular entries, undeclared or missing files, excessive compressed/uncompressed bytes, excessive members, and size/digest/executable-mode mismatches.
+`memory_repo_list` returns the configured repository entries, optionally filtered by kind. `memory_repo_check_updates` reports the configured state per repository so users can compare against installed versions.
 
-Digest meanings match Core:
+Future: automatic Git provider API polling for latest release tags. Repository registration will be managed via UI rather than direct config editing.
 
-```text
-artifact_digest = sha256(canonical(manifest without artifact_digest/signatures))
-manifest_digest = sha256(exact manifest.json bytes)
-archive_digest  = sha256(exact archive bytes)
-```
-
-`(artifact_id, kind, version)` is immutable. A retry succeeds only when all three stored digests match; otherwise it is a conflict. Fetch re-hashes the stored archive before returning it.
-
-## 5. Policy contract
-
-A policy key is unique by:
-
-```text
-(organization_id, project_pattern, kind, artifact_id)
-```
-
-Upsert is deterministic. Resolve applies priority descending, updated time descending, then ID ascending. The first matching policy controls each artifact identity. A non-required high-priority policy suppresses lower policies intentionally.
-
-Version ordering and ranges match Core SemVer behavior, including prerelease/build values and `>=`, `<=`, `>`, `<`, `=`, `^`, and `~`. Selection uses the highest matching semantic version, not publish time.
-
-## 6. Handoff contract
+## 5. Handoff contract
 
 A handoff stores one Core Task Envelope and correlated Result Envelope. Push validates:
 
@@ -94,7 +85,7 @@ Ack and nack require the active generation guards and are committed atomically w
 
 A separate `payload_digest` covers the complete handoff submission. Retry of the same `(project_id, phase_attempt_id)` returns the original ID/timestamps only if the payload digest matches; conflicting payloads are rejected.
 
-## 7. Database and lifecycle
+## 6. Database and lifecycle
 
 Alembic revision `003` is required. `/ready` verifies:
 
@@ -110,24 +101,26 @@ ISEKAI_MEMORY_DATABASE_URL=... alembic upgrade head
 
 The service never silently migrates during process startup.
 
-## 8. Tool boundary
+Note: the `artifacts` and `artifact_policies` tables remain in the database schema for backward compatibility but are no longer used by the active tool set.
 
-Twelve tools are advertised. Every request is validated at runtime against the exact JSON Schema returned by `tools/list`. Missing/extra/invalid fields are controlled invalid-parameter errors rather than internal failures.
+## 7. Tool boundary
+
+Nine tools are advertised: two repository registry tools and seven handoff tools. Every request is validated at runtime against the exact JSON Schema returned by `tools/list`. Missing/extra/invalid fields are controlled invalid-parameter errors rather than internal failures.
 
 MCP tool execution failures use `CallToolResult.isError=true`; JSON-RPC protocol failures retain standard codes such as `-32700`, `-32600`, `-32601`, and `-32602`.
 
-## 9. Deployment boundary
+## 8. Deployment boundary
 
 The repository contains a production Dockerfile but no Kubernetes manifests. A later deployment repository/template owns migration jobs, ingress, certificates, service accounts, and environment-specific configuration. The application image expects a reachable, already migrated PostgreSQL database.
 
-## 10. Completion evidence
+## 9. Completion evidence
 
-Required checks for the server baseline and independent Phase 6 handoff/acquisition tracks:
+Required checks for the server baseline and handoff tracks:
 
 1. Python package and Docker image build
 2. Alembic upgrade against PostgreSQL 16
-3. Registry publish → policy resolve → fetch
-4. Handoff push → list → compatibility pull and recoverable claim → get → ack/nack, including expiry/reclaim races
+3. Handoff push → list → compatibility pull and recoverable claim → get → ack/nack, including expiry/reclaim races
+4. Repository list and check-updates with configured repos
 5. read/write/admin and project authorization denial cases
 6. stdio and HTTP `server/discover` → `tools/list`/`tools/call`, with no initialize exchange
 7. required HTTP routing-header rejection tests
