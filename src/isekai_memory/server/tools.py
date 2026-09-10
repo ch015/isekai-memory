@@ -1,4 +1,4 @@
-"""MCP tool catalog for Work Handoff and Repository Registry.
+"""MCP tool catalog for Work Handoff, Project Experience and Repository Registry.
 
 Artifact publish/fetch/resolve tools have been removed — artifacts are now
 distributed via Git Releases and installed locally by ``isekai init/update``.
@@ -10,6 +10,11 @@ version resolution is needed again.
 from __future__ import annotations
 
 from typing import Any
+
+from isekai_memory.experience.tools import EXPERIENCE_TOOLS
+from isekai_memory.generation.tools import GENERATION_TOOLS
+from isekai_memory.skills.tools import SKILL_TOOLS
+from isekai_memory.team.tools import TEAM_TOOLS
 
 DIGEST = {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
 SHORT_ID = {"type": "string", "minLength": 1, "maxLength": 128}
@@ -195,6 +200,11 @@ TOOLS: list[dict[str, Any]] = [
         },
     },
 ]
+
+TOOLS.extend(EXPERIENCE_TOOLS)
+TOOLS.extend(GENERATION_TOOLS)
+TOOLS.extend(SKILL_TOOLS)
+TOOLS.extend(TEAM_TOOLS)
 
 TOOL_MAP = {tool["name"]: tool for tool in TOOLS}
 TOOL_NAMES = set(TOOL_MAP)

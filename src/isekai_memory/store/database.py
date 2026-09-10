@@ -8,7 +8,7 @@ import asyncpg
 
 from isekai_memory.config import Settings
 
-EXPECTED_SCHEMA_REVISION = "003"
+EXPECTED_SCHEMA_REVISION = "008"
 _pool: asyncpg.Pool | None = None
 
 
@@ -70,7 +70,22 @@ async def health_check() -> dict[str, str]:
                 'public.artifact_policies',
                 'public.handoffs',
                 'public.handoff_claim_receipts',
-                'public.access_tokens'
+                'public.access_tokens',
+                'public.memory_experiences',
+                'public.memory_experience_events',
+                'public.memory_experience_suppressions',
+                'public.memory_generation_jobs',
+                'public.memory_generation_attempts',
+                'public.memory_summary_snapshots',
+                'public.memory_skills',
+                'public.memory_skill_revisions',
+                'public.memory_skill_sources',
+                'public.memory_skill_events',
+                'public.memory_asset_grants',
+                'public.memory_knowledge_documents',
+                'public.memory_knowledge_events',
+                'public.memory_skill_imports',
+                'public.memory_asset_feedback'
             ]) AS name
             """
         )

@@ -44,6 +44,14 @@ def create_app(settings: Settings, dispatch: Any) -> FastAPI:
     protocol_headers = {"MCP-Protocol-Version": PROTOCOL_VERSION}
 
     @app.middleware("http")
+    async def reference_cache_policy(request: Request, call_next):
+        response = await call_next(request)
+        if request.url.path == "/mcp" or request.url.path.startswith("/tools"):
+            response.headers["Cache-Control"] = "no-store"
+            response.headers["Pragma"] = "no-cache"
+        return response
+
+    @app.middleware("http")
     async def auth_middleware(request: Request, call_next):
         if request.url.path in ("/health", "/ready", "/docs", "/openapi.json"):
             return await call_next(request)

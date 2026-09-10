@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -53,6 +53,14 @@ class Settings(BaseSettings):
     handoff_claim_lease_default_seconds: int = Field(default=300, ge=1, le=86_400)
     handoff_claim_lease_max_seconds: int = Field(default=3600, ge=1, le=86_400)
 
+    retrieval_strategy: Literal["postgres_lexical", "postgres_weighted_lexical"] = "postgres_lexical"
+
+    generation_enabled: bool = False
+    generation_max_input_chars: int = Field(default=8192, ge=256, le=16384)
+    generation_max_output_chars: int = Field(default=4296, ge=256, le=4296)
+    generation_timeout_seconds: int = Field(default=10, ge=1, le=30)
+    generation_lease_seconds: int = Field(default=60, ge=10, le=300)
+
     # Repository registry — list of Git release repositories to track.
     # Each entry: {"url": "<repo-url>", "kind": "foundation"|"preset", "artifact_id": "<id>"}
     # Managed via config file; future UI administration planned.
@@ -60,6 +68,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_bounds(self) -> Settings:
+        if self.generation_lease_seconds <= self.generation_timeout_seconds + 5:
+            raise ValueError("generation lease must exceed timeout by more than five seconds")
         if self.db_pool_max < self.db_pool_min:
             raise ValueError("db_pool_max must be greater than or equal to db_pool_min")
         if self.max_archive_uncompressed_bytes < self.max_archive_bytes:
@@ -107,6 +117,12 @@ def _flatten_config(data: dict[str, Any]) -> dict[str, Any]:
         "db.pool_min": "db_pool_min",
         "db.pool_max": "db_pool_max",
         "repos": "repos",
+        "retrieval.strategy": "retrieval_strategy",
+        "generation.enabled": "generation_enabled",
+        "generation.max_input_chars": "generation_max_input_chars",
+        "generation.max_output_chars": "generation_max_output_chars",
+        "generation.timeout_seconds": "generation_timeout_seconds",
+        "generation.lease_seconds": "generation_lease_seconds",
     }
     flat = _flatten_dict(data)
     result = {setting_key: flat[json_key] for json_key, setting_key in mapping.items() if json_key in flat}

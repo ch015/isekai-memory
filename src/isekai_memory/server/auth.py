@@ -9,6 +9,7 @@ from typing import Any
 
 from isekai_memory.server.errors import MemoryToolError
 from isekai_memory.store import queries
+from isekai_memory.team.tools import TEAM_SCOPES
 
 
 @dataclass(frozen=True)
@@ -64,6 +65,26 @@ _TOOL_SCOPES = {
     "memory_handoff_get_claimed": "write",
     "memory_handoff_ack": "write",
     "memory_handoff_nack": "write",
+    "memory_experience_propose": "write",
+    "memory_experience_list": "admin",
+    "memory_experience_review": "admin",
+    "memory_experience_revise": "admin",
+    "memory_experience_history": "admin",
+    "memory_experience_suppression_release": "admin",
+    "memory_search": "read",
+    "memory_read": "read",
+    "memory_generation_enqueue": "admin",
+    "memory_generation_list": "admin",
+    "memory_generation_retry": "admin",
+    "memory_summary_read": "read",
+    "memory_skill_generate": "admin",
+    "memory_skill_propose": "write",
+    "memory_skill_revise": "admin",
+    "memory_skill_review": "admin",
+    "memory_skill_list": "admin",
+    "memory_skill_inspect": "admin",
+    "memory_skill_read": "read",
+    "memory_skill_export": "admin",
 }
 _PROJECT_SCOPED_TOOLS = {
     "memory_handoff_push",
@@ -73,7 +94,31 @@ _PROJECT_SCOPED_TOOLS = {
     "memory_handoff_get_claimed",
     "memory_handoff_ack",
     "memory_handoff_nack",
+    "memory_experience_propose",
+    "memory_experience_list",
+    "memory_experience_review",
+    "memory_experience_revise",
+    "memory_experience_history",
+    "memory_experience_suppression_release",
+    "memory_search",
+    "memory_read",
+    "memory_generation_enqueue",
+    "memory_generation_list",
+    "memory_generation_retry",
+    "memory_summary_read",
+    "memory_skill_generate",
+    "memory_skill_propose",
+    "memory_skill_revise",
+    "memory_skill_review",
+    "memory_skill_list",
+    "memory_skill_inspect",
+    "memory_skill_read",
+    "memory_skill_export",
 }
+
+
+_TOOL_SCOPES.update(TEAM_SCOPES)
+_PROJECT_SCOPED_TOOLS.update(TEAM_SCOPES)
 
 
 def authorize_tool(principal: Principal, tool_name: str, arguments: dict[str, Any]) -> None:

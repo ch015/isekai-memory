@@ -47,6 +47,10 @@ def main() -> None:
                 },
             ),
             request(4, "initialize"),
+            request(5, "tools/call", {"name": "memory_search", "arguments": {"project_id": "stdio-e2e-project", "query": "lease"}}),
+            request(6, "tools/call", {"name": "memory_knowledge_list", "arguments": {"project_id": "stdio-e2e-project"}}),
+            request(7, "tools/call", {"name": "memory_grant_list", "arguments": {"project_id": "stdio-e2e-project"}}),
+            request(8, "tools/call", {"name": "memory_feedback_list", "arguments": {"project_id": "stdio-e2e-project"}}),
             "",
         ]
     )
@@ -61,25 +65,30 @@ def main() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     responses = [json.loads(line) for line in completed.stdout.splitlines()]
-    assert len(responses) == 4, responses
+    assert len(responses) == 8, responses
 
     discovered = responses[0]["result"]
     assert discovered["supportedVersions"] == [PROTOCOL_VERSION]
     assert discovered["ttlMs"] == 3_600_000 and discovered["cacheScope"] == "public"
     assert "serverInfo" not in discovered
-    assert len(responses[1]["result"]["tools"]) == 12
+    assert len(responses[1]["result"]["tools"]) == 43
 
     db_call = responses[2]["result"]
     assert db_call["isError"] is False, db_call
     assert db_call["structuredContent"] == [], db_call
     assert responses[3]["error"]["code"] == -32601
+    assert responses[4]["result"]["isError"] is False
+    assert responses[4]["result"]["structuredContent"]["items"] == []
+    for response in responses[5:]:
+        assert response["result"]["isError"] is False and response["result"]["structuredContent"]["items"] == []
 
     print(
         json.dumps(
             {
                 "mcp_protocol": PROTOCOL_VERSION,
                 "server_discover": True,
-                "tool_count": 12,
+                "tool_count": 43,
+                "experience_search": True,
                 "database_tool_call": True,
                 "initialize_rejected": True,
             },

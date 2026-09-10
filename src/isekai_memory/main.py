@@ -22,6 +22,8 @@ class ToolDispatcher:
         self.settings = settings
 
     async def __call__(self, tool_name: str, arguments: dict[str, Any], principal: Principal) -> Any:
+        from isekai_memory.experience import service as experience
+        from isekai_memory.generation import queue, summaries
         from isekai_memory.handoff.service import (
             acknowledge_claimed_handoff,
             claim_handoff_recoverable,
@@ -32,9 +34,78 @@ class ToolDispatcher:
             push_handoff,
         )
         from isekai_memory.registry.repo import check_repo_updates, list_repos
+        from isekai_memory.skills import export as skill_export
+        from isekai_memory.skills import generation as skill_generation
+        from isekai_memory.skills import lifecycle as skill_lifecycle
+        from isekai_memory.skills import reads as skill_reads
+        from isekai_memory.skills import submissions as skill_submissions
+        from isekai_memory.team import exchange, feedback, grants, knowledge
 
         validate_tool_arguments(tool_name, arguments)
         authorize_tool(principal, tool_name, arguments)
+
+        team_writes = {
+            "memory_grant_create": grants.create, "memory_grant_revoke": grants.revoke,
+            "memory_knowledge_sync": knowledge.sync, "memory_knowledge_delete": knowledge.delete,
+            "memory_skill_import": exchange.ingest, "memory_skill_import_forget": exchange.forget,
+            "memory_feedback_record": feedback.record,
+        }
+        if tool_name in team_writes:
+            return await team_writes[tool_name](arguments, actor_id=principal.user_id)
+        team_reads = {
+            "memory_grant_list": grants.list_grants, "memory_shared_read": grants.read,
+            "memory_knowledge_list": knowledge.list_documents, "memory_knowledge_read": knowledge.read,
+            "memory_skill_import_inspect": exchange.inspect, "memory_feedback_list": feedback.list_feedback,
+            "memory_skill_import_list": exchange.list_imports,
+        }
+        if tool_name in team_reads:
+            return await team_reads[tool_name](arguments)
+
+        if tool_name == "memory_skill_generate":
+            return await skill_generation.enqueue(arguments, actor_id=principal.user_id, settings=self.settings)
+        if tool_name in {"memory_skill_propose", "memory_skill_revise"}:
+            return await skill_submissions.submit(arguments, actor_id=principal.user_id)
+        if tool_name == "memory_skill_review":
+            return await skill_lifecycle.review(arguments, actor_id=principal.user_id)
+        if tool_name == "memory_skill_list":
+            return await skill_reads.list_revisions(arguments)
+        if tool_name in {"memory_skill_read", "memory_skill_inspect"}:
+            return await skill_reads.read(arguments, admin=tool_name == "memory_skill_inspect")
+        if tool_name == "memory_skill_export":
+            return await skill_export.export(arguments)
+
+        if tool_name == "memory_generation_enqueue":
+            return await queue.enqueue(arguments, actor_id=principal.user_id, settings=self.settings)
+        if tool_name == "memory_generation_retry":
+            return await queue.redrive(arguments, actor_id=principal.user_id)
+        if tool_name == "memory_generation_list":
+            # Preserve job_id naming; experience serializers rename id to memory_id.
+            from fastapi.encoders import jsonable_encoder
+
+            result = await queue.list_jobs(arguments)
+            for item in result["items"]:
+                item["job_id"] = item.pop("id")
+            return jsonable_encoder(result)
+        if tool_name == "memory_summary_read":
+            return await summaries.read(arguments)
+
+        experience_writes = {
+            "memory_experience_propose": experience.propose,
+            "memory_experience_review": experience.review,
+            "memory_experience_revise": experience.revise,
+            "memory_experience_suppression_release": experience.release_suppression,
+        }
+        if tool_name in experience_writes:
+            return await experience_writes[tool_name](arguments, actor_id=principal.user_id)
+        if tool_name == "memory_search":
+            return await experience.search(arguments, strategy=self.settings.retrieval_strategy)
+        experience_reads = {
+            "memory_experience_list": experience.list_for_review,
+            "memory_experience_history": experience.history,
+            "memory_read": experience.read,
+        }
+        if tool_name in experience_reads:
+            return await experience_reads[tool_name](arguments)
 
         # --- Repository Registry ----------------------------------------------
         if tool_name == "memory_repo_list":
@@ -142,6 +213,18 @@ async def revoke_token(settings: Settings, token_id: str) -> None:
     print(json.dumps({"token_id": token_id, "revoked": True}))
 
 
+async def run_generation(settings: Settings, project_id: str, max_jobs: int) -> None:
+    from isekai_memory.generation.worker import run
+    from isekai_memory.store.database import close_pool, health_check, init_pool
+
+    await init_pool(settings)
+    try:
+        await health_check()
+        print(json.dumps(await run(settings, project_id=project_id, max_jobs=max_jobs)))
+    finally:
+        await close_pool()
+
+
 def cli(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="isekai-memory", description="ISEKAI Memory MCP Server")
     parser.add_argument("--mode", choices=["http", "stdio"], default=None)
@@ -151,12 +234,21 @@ def cli(argv: list[str] | None = None) -> None:
     admin = parser.add_mutually_exclusive_group()
     admin.add_argument("--issue-token", action="store_true", help="Issue one project-scoped token and print it once")
     admin.add_argument("--revoke-token", metavar="TOKEN_ID", help="Revoke a token by UUID")
+    admin.add_argument("--run-generation", action="store_true", help="Run a finite batch of offline generation jobs")
+    parser.add_argument("--max-jobs", type=int, default=20)
     parser.add_argument("--project-id")
     parser.add_argument("--user-id")
     parser.add_argument("--scopes", default="read,write")
     parser.add_argument("--expires-hours", type=int, default=None)
     args = parser.parse_args(argv)
     settings = load_settings(args.config)
+    if args.run_generation:
+        if not args.project_id or not 1 <= args.max_jobs <= 100:
+            parser.error("--run-generation requires --project-id and --max-jobs between 1 and 100")
+        if not settings.generation_enabled:
+            parser.error("--run-generation requires generation.enabled=true (disabled by default)")
+        asyncio.run(run_generation(settings, args.project_id, args.max_jobs))
+        return
     if args.issue_token:
         if not args.project_id or not args.user_id:
             parser.error("--issue-token requires --project-id and --user-id")

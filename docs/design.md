@@ -1,8 +1,22 @@
-# ISEKAI Memory Design (v0.3)
+# ISEKAI Memory Design (v0.8)
 
 ## 1. Scope
 
-`isekai-memory` is a standalone PostgreSQL-backed Work Handoff and Repository Registry MCP server. Handoff (Phase 1–6 recoverable-handoff server track) is implemented here. Core-side automatic acquisition and context injection are implemented in the `isekai-core` repository (`src/isekai/memory/`); this server provides the handoff and registry endpoints that Core consumes.
+`isekai-memory` is a standalone PostgreSQL-backed Work Handoff, Project Experience and Repository Registry MCP server. Handoff (Phase 1–6 recoverable-handoff server track) is implemented here. Core-side automatic acquisition and context injection are implemented in the `isekai-core` repository (`src/isekai/memory/`). Experience APIs are explicit server tools; M3 adds separately opt-in Core recall, disabled by default.
+
+Project Experience adds source-backed pending proposals, admin review and bounded
+lexical search/read. See [memory-expansion.md](memory-expansion.md) for its detailed
+contracts, module boundaries and the staged Tencent capability mapping.
+M2 adds immutable corrections, atomic supersession, scoped suppression, validity,
+forgetting and cursor history; see [memory-lifecycle.md](memory-lifecycle.md).
+M3 provides a retrieval-provider contract, measured lexical weighting, source-bound
+citations and an opt-in Core adapter; see [memory-retrieval.md](memory-retrieval.md).
+M4 adds durable offline generation jobs, source coverage, fenced retries and fresh
+approved-reference project/phase snapshots; see [memory-generation.md](memory-generation.md).
+External model providers and automatic summary injection remain disabled/unimplemented.
+M5 adds source-bound native Skill scaffolds, immutable authored revisions, review,
+atomic source-forgetting propagation and deterministic unsigned exports verified by
+Core's existing artifact contract; see [memory-skills.md](memory-skills.md).
 
 Artifact distribution has moved to Git Releases. Foundation and Preset archives are built in CI, published to each repository's releases, and installed locally via `isekai init/update`. The Memory server no longer stores or serves artifact binaries.
 
@@ -39,11 +53,11 @@ Principal(user_id, project_id, scopes)
 
 Scopes:
 
-- `read`: list repos, check updates, and list handoffs
-- `write`: push/pull/claim/get/ack/nack handoffs
-- `admin`: all lower scopes (reserved for future policy tools)
+- `read`: repos, handoffs, active experiences, fresh reference summaries and active source-fresh Skills
+- `write`: handoff delivery, experience proposals and native Skill proposals
+- `admin`: all lower scopes, review/lifecycle, generation administration and explicit Skill revision/export
 
-Project-scoped operations compare the request `project_id` with the principal project. `from_user` and `claimed_by` are derived from `Principal.user_id`.
+Project-scoped operations compare the request `project_id` with the principal project. `from_user`, `claimed_by`, experience authors and reviewers are derived from `Principal.user_id`. Experience classification is inherited from its source. Search/read classification ceilings are output filters, not additional token clearances; tokens still authorize the whole project.
 
 Token lifecycle is administered by `--issue-token` and `--revoke-token`. Revoked and expired tokens are rejected.
 
@@ -87,11 +101,13 @@ A separate `payload_digest` covers the complete handoff submission. Retry of the
 
 ## 6. Database and lifecycle
 
-Alembic revision `003` is required. `/ready` verifies:
+Alembic revision `008` is required. `/ready` verifies:
 
 - database connectivity
-- `alembic_version == 003`
-- artifacts, artifact_policies, handoffs, handoff_claim_receipts, and access_tokens tables
+- `alembic_version == 008`
+- artifacts, artifact_policies, handoffs, handoff_claim_receipts, access_tokens, memory_experiences, memory_experience_events, memory_experience_suppressions, memory_generation_jobs, memory_generation_attempts and memory_summary_snapshots tables
+- memory_skills, memory_skill_revisions, memory_skill_sources and memory_skill_events tables
+- memory_asset_grants, memory_knowledge_documents, memory_knowledge_events, memory_skill_imports and memory_asset_feedback tables
 
 Migrations are explicit and must run before server startup:
 
@@ -100,12 +116,28 @@ ISEKAI_MEMORY_DATABASE_URL=... alembic upgrade head
 ```
 
 The service never silently migrates during process startup.
+Migration `005` preserves M1 payloads and receipts and backfills claim fingerprints.
+Downgrade to `004` is refused after revisions, forgetting or valid-from data exists.
+Migration `006` adds generation jobs/attempt receipts and plaintext-free summary
+manifests; it refuses downgrade if any generation job receipts exist.
+Migration `007` adds immutable Skill revisions/bindings and a transactional source
+invalidation/erasure trigger. Downgrade is refused once Skill revisions or jobs exist.
+Migration `008` adds exact-version asset grants, pushed Wiki snapshots/events,
+quarantined Skill imports and explicit feedback. Downgrade refuses any M6 history,
+including erased/revoked entries. [M6 contracts](memory-team-assets.md) describe
+freshness, project authorization, copy versus grant semantics and local-only scope.
 
 Note: the `artifacts` and `artifact_policies` tables remain in the database schema for backward compatibility but are no longer used by the active tool set.
 
 ## 7. Tool boundary
 
-Nine tools are advertised: two repository registry tools and seven handoff tools. Every request is validated at runtime against the exact JSON Schema returned by `tools/list`. Missing/extra/invalid fields are controlled invalid-parameter errors rather than internal failures.
+Forty-three tools are advertised: two repository registry tools, seven handoff tools,
+eight experience tools, four generation/summary tools, eight Skill tools and fourteen
+team-asset tools. Every request is validated
+at runtime against the JSON Schema returned by `tools/list`. Missing/extra/invalid
+fields are controlled invalid-parameter errors rather than internal failures.
+Validity date-time validation is provided without optional format dependencies and
+requires a valid timezone-bearing timestamp; leap seconds are not accepted.
 
 MCP tool execution failures use `CallToolResult.isError=true`; JSON-RPC protocol failures retain standard codes such as `-32700`, `-32600`, `-32601`, and `-32602`.
 
@@ -125,5 +157,10 @@ Required checks for the server baseline and handoff tracks:
 6. stdio and HTTP `server/discover` → `tools/list`/`tools/call`, with no initialize exchange
 7. required HTTP routing-header rejection tests
 8. unit test and lint pass
+9. experience proposal → pending queue → review → search/read → archive, including concurrent retries, project isolation, expiry/classification exclusion and unchanged handoff state
+10. correction → atomic replacement → history → forget; competing edits, suppression/release fencing, cursor scope and populated migration/rollback checks
+11. judged Korean/English retrieval, pre-top-K visibility, citation binding and real Core-client recall with optional context budgets and offline fallback
+12. generation restart/lease fencing, atomic pending proposals, manual-source protection, bounded retries/budgets and fresh source-only summaries; real worker CLI and guarded M4 rollback
+13. source-backed native Skill scaffolding/manual authorship, immutable revisions and single-active review races, source forgetting/expiry, deterministic safe exports and acceptance by the existing Core artifact verifier without installing anything
 
 Passing syntax parsing or unit tests alone is not completion evidence.
