@@ -28,7 +28,7 @@ async def skill_snapshot(settings, source, *, create=False):
             await dispatch_tool("memory_skill_generate", {"project_id": "project-1", "sources": [{"memory_id": result["memory_id"], "version": 2}]}, settings=settings)
             generated = await run(settings, project_id="project-1")
             assert generated["results"][0]["code"] == "skill_proposed"
-        assert (await health_check())["schema_revision"] == "008"
+        assert (await health_check())["schema_revision"] == "013"
         return {name: [dict(row) for row in await pool.fetch(f"SELECT * FROM {name} ORDER BY 1,2")]
                 for name in ("memory_skills", "memory_skill_revisions", "memory_skill_sources", "memory_skill_events",
                              "memory_generation_jobs", "memory_generation_attempts", "memory_summary_snapshots")}

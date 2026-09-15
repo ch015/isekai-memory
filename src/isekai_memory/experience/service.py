@@ -122,11 +122,14 @@ async def review(arguments: dict[str, Any], *, actor_id: str) -> dict[str, Any]:
     )
 
 
-async def list_for_review(arguments: dict[str, Any]) -> dict[str, Any]:
+async def list_for_review(arguments: dict[str, Any], *, actor_id: str | None = None) -> dict[str, Any]:
     return _serialize(
         await repository.list_for_review(
             project_id=arguments["project_id"],
             status=arguments.get("status", "pending"),
+            actor_id=actor_id, metadata_only=arguments.get("metadata_only", False),
+            maximum=arguments.get("max_classification", "restricted"),
+            memory_id=arguments.get("memory_id"),
             limit=arguments.get("limit", 20),
             offset=arguments.get("offset", 0),
             cursor=arguments.get("cursor"),

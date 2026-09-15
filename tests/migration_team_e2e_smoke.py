@@ -12,7 +12,7 @@ from isekai_memory.config import Settings
 from isekai_memory.main import dispatch_tool
 from isekai_memory.retrieval.citations import canonical, digest
 from isekai_memory.store.database import close_pool, health_check, init_pool
-from tests.migration_e2e_smoke import empty_database, seed
+from tests.migration_e2e_smoke import empty_database, legacy_handoff, seed
 
 BASE_TABLES = ("handoffs", "handoff_claim_receipts", "memory_experiences", "memory_experience_events", "memory_skills",
                "memory_skill_revisions", "memory_skill_sources", "memory_skill_events")
@@ -39,7 +39,7 @@ async def seed_skill(settings, source):
 async def snapshot(settings, *, team=False):
     pool = await init_pool(settings)
     try:
-        return {name: [dict(row) for row in await pool.fetch(f"SELECT * FROM {name} ORDER BY 1,2")]
+        return {name: [legacy_handoff(row) if name == "handoffs" else dict(row) for row in await pool.fetch(f"SELECT * FROM {name} ORDER BY 1,2")]
                 for name in (*BASE_TABLES, *(TEAM_TABLES if team else ()))}
     finally:
         await close_pool()
@@ -48,7 +48,7 @@ async def snapshot(settings, *, team=False):
 async def populate(settings, skill, source):
     await init_pool(settings)
     try:
-        assert (await health_check())["schema_revision"] == "008"
+        assert (await health_check())["schema_revision"] == "013"
 
         async def call(name, arguments):
             return await dispatch_tool(name, {"project_id": "project-1", **arguments})

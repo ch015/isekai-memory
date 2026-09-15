@@ -11,8 +11,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from isekai_memory.continuity.tools import CONTINUITY_TOOLS
 from isekai_memory.experience.tools import EXPERIENCE_TOOLS
 from isekai_memory.generation.tools import GENERATION_TOOLS
+from isekai_memory.handoff.continuation import RECIPIENT
+from isekai_memory.handoff.continuation import SCHEMA as CONTINUATION_SCHEMA
+from isekai_memory.handoff.tools import COLLABORATION_TOOLS
 from isekai_memory.skills.tools import SKILL_TOOLS
 from isekai_memory.team.tools import TEAM_TOOLS
 
@@ -101,7 +105,7 @@ TOOLS: list[dict[str, Any]] = [
     # --- Work Handoff --------------------------------------------------------
     {
         "name": "memory_handoff_push",
-        "description": "Validate and register a completed Core Task/Result pair for handoff.",
+        "description": "Register an immutable Core Task/Result handoff; optional recipient/continuation opts into version-2 delivery.",
         "inputSchema": {
             "type": "object",
             "required": [
@@ -121,13 +125,14 @@ TOOLS: list[dict[str, Any]] = [
                 "raw_output": {"type": "string"},
                 "handoff_note": {"type": "string", "maxLength": 16384},
                 "lock_snapshot_digest": DIGEST, "envelope_digest": DIGEST,
+                "recipient_user_id": RECIPIENT, "continuation": CONTINUATION_SCHEMA,
             },
             "additionalProperties": False,
         },
     },
     {
         "name": "memory_handoff_list",
-        "description": "List non-expired pending handoffs for the authenticated project.",
+        "description": "List non-expired pending version-1 handoffs. Use inbox for addressed or continuation handoffs.",
         "inputSchema": {
             "type": "object", "required": ["project_id"],
             "properties": {"project_id": SHORT_ID, "unit_id": SHORT_ID},
@@ -145,7 +150,7 @@ TOOLS: list[dict[str, Any]] = [
     },
     {
         "name": "memory_handoff_claim",
-        "description": "Acquire or replay a recoverable, token-bound handoff lease.",
+        "description": "Acquire or replay a recoverable token-bound lease. Version-2 delivery requires accept_handoff_version=2 and the assigned recipient.",
         "inputSchema": {
             "type": "object", "required": ["project_id", "handoff_id", "claim_token"],
             "properties": {
@@ -153,6 +158,7 @@ TOOLS: list[dict[str, Any]] = [
                 "handoff_id": {"type": "string", "format": "uuid"},
                 "claim_token": CLAIM_TOKEN,
                 "lease_seconds": {"type": "integer", "minimum": 1, "maximum": 86400},
+                "accept_handoff_version": {"type": "integer", "enum": [2]},
             },
             "additionalProperties": False,
         },
@@ -205,6 +211,8 @@ TOOLS.extend(EXPERIENCE_TOOLS)
 TOOLS.extend(GENERATION_TOOLS)
 TOOLS.extend(SKILL_TOOLS)
 TOOLS.extend(TEAM_TOOLS)
+TOOLS.extend(COLLABORATION_TOOLS)
+TOOLS.extend(CONTINUITY_TOOLS)
 
 TOOL_MAP = {tool["name"]: tool for tool in TOOLS}
 TOOL_NAMES = set(TOOL_MAP)

@@ -114,3 +114,16 @@ def handoff_arguments() -> dict[str, Any]:
         "lock_snapshot_digest": lock_digest,
         "envelope_digest": envelope_digest,
     }
+
+
+def continuation_package() -> dict[str, Any]:
+    """Synthetic descriptors only: no real repository or artifact is fetched."""
+    return {
+        "schema_version": 1, "goal": "Finish the shared change", "verified_state": "Unit tests passed before handoff",
+        "repository": {"source_id": "repo-main", "commit": "a" * 40, "branch": "feature-handoff"},
+        "workspace": {"state": "captured", "snapshot_artifact_id": "workspace-1"},
+        "artifacts": [{"id": "workspace-1", "source_id": "team-artifacts", "reference": "snapshot-1",
+                       "kind": "workspace_snapshot", "digest": "sha256:" + "b" * 64, "size_bytes": 1024}],
+        "remaining_work": ["Integration verification"], "next_steps": ["Verify and restore the workspace snapshot"],
+        "blockers": [], "decisions": ["Preserve the existing API contract"],
+    }

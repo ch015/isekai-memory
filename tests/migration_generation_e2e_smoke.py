@@ -11,7 +11,7 @@ from isekai_memory.config import Settings
 from isekai_memory.generation import queue, worker
 from isekai_memory.main import dispatch_tool
 from isekai_memory.store.database import close_pool, health_check, init_pool
-from tests.migration_e2e_smoke import empty_database, seed
+from tests.migration_e2e_smoke import empty_database, legacy_handoff, seed
 
 
 async def seed_experience(settings, original):
@@ -32,7 +32,7 @@ async def seed_experience(settings, original):
 async def verify(settings, source, experience, *, generate=False):
     pool = await init_pool(settings)
     try:
-        assert dict(await pool.fetchrow("SELECT * FROM handoffs WHERE id=$1", source["id"])) == source
+        assert legacy_handoff(await pool.fetchrow("SELECT * FROM handoffs WHERE id=$1", source["id"])) == source
         assert dict(await pool.fetchrow("SELECT * FROM memory_experiences WHERE id=$1", experience["id"])) == experience
         if generate:
             await queue.enqueue({"project_id": "project-1", "kind": "extract"}, actor_id="migration-test", settings=settings)
@@ -77,7 +77,7 @@ def main():
     async def ready():
         await init_pool(settings)
         try:
-            assert (await health_check())["schema_revision"] == "008"
+            assert (await health_check())["schema_revision"] == "013"
         finally:
             await close_pool()
 

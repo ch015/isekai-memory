@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 from isekai_memory.config import Settings
-from isekai_memory.handoff.service import claim_handoff_recoverable, push_handoff
+from isekai_memory.handoff.service import _claim_token_digest, _digest
 from isekai_memory.main import dispatch_tool
 from isekai_memory.store.database import close_pool, health_check, init_pool
 from tests.helpers import handoff_arguments
@@ -36,12 +36,24 @@ async def empty_database(settings):
 async def seed(settings):
     pool = await init_pool(settings)
     try:
-        source = await push_handoff(handoff_arguments(), settings=settings)
-        await claim_handoff_recoverable({
-            "project_id": "project-1", "handoff_id": source["handoff_id"], "claim_token": secrets.token_urlsafe(32),
-        }, settings=settings)
+        # Frozen schema-003 fixture: current runtime queries require schema 010.
+        args = handoff_arguments()
+        material = {**args, "from_user": "local-stdio", "task_summary": None,
+                    "passed_checks": [], "artifacts_produced": [], "handoff_note": None}
         async with pool.acquire() as conn:
-            return dict(await conn.fetchrow("SELECT * FROM handoffs WHERE id=$1::uuid", source["handoff_id"]))
+            return dict(await conn.fetchrow(
+                """INSERT INTO handoffs
+                   (project_id,unit_id,phase_attempt_id,phase_id,from_user,result_status,classification,
+                    task_envelope,result_envelope,context_digest,raw_output,lock_snapshot_digest,envelope_digest,
+                    payload_digest,expires_at,status,claimed_by,claimed_at,claim_token_digest,claim_generation,claim_lease_expires_at)
+                   VALUES ($1,$2,$3,$4,'local-stdio',$5,$6,$7::jsonb,$8::jsonb,$9,$10,$11,$12,$13,
+                           clock_timestamp()+interval '7 days','claimed','local-stdio',clock_timestamp(),$14,1,
+                           clock_timestamp()+interval '1 hour') RETURNING *""",
+                args["project_id"], args["unit_id"], args["phase_attempt_id"], args["phase_id"],
+                args["result_status"], args["classification"], args["task_envelope"], args["result_envelope"],
+                args["context_digest"], args["raw_output"], args["lock_snapshot_digest"], args["envelope_digest"],
+                _digest(material), _claim_token_digest(secrets.token_urlsafe(32)),
+            ))
     finally:
         await close_pool()
 
@@ -51,9 +63,9 @@ async def verify(settings, original, *, experience):
     try:
         async with pool.acquire() as conn:
             saved = dict(await conn.fetchrow("SELECT * FROM handoffs WHERE id=$1", original["id"]))
-            assert saved == original, "Migration changed an existing handoff payload or claim"
+            assert legacy_handoff(saved) == original, "Migration changed an existing handoff payload or claim"
         if experience:
-            assert (await health_check())["schema_revision"] == "008"
+            assert (await health_check())["schema_revision"] == "013"
             proposed = await dispatch_tool("memory_experience_propose", {
                 "project_id": "project-1", "source_handoff_id": str(original["id"]),
                 "idempotency_key": "migration-proposal", "kind": "lesson",
@@ -65,6 +77,16 @@ async def verify(settings, original, *, experience):
             await dispatch_tool("memory_read", {"project_id": "project-1", "memory_id": proposed["memory_id"]})
     finally:
         await close_pool()
+
+
+def legacy_handoff(row):
+    """Assert additive defaults, then compare all historical columns exactly."""
+    saved = dict(row)
+    for name, expected in {"handoff_version": 1, "recipient_user_id": None,
+                           "continuation": None, "continuation_digest": None, "continuity_managed": False}.items():
+        if name in saved:
+            assert saved.pop(name) == expected
+    return saved
 
 
 def main():

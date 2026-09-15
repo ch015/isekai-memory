@@ -113,7 +113,9 @@ async def verify_m1(settings, source, originals, *, upgraded):
     pool = await init_pool(settings)
     try:
         async with pool.acquire() as conn:
-            assert dict(await conn.fetchrow("SELECT * FROM handoffs WHERE id=$1", source["id"])) == source
+            from tests.migration_e2e_smoke import legacy_handoff
+
+            assert legacy_handoff(await conn.fetchrow("SELECT * FROM handoffs WHERE id=$1", source["id"])) == source
             saved = [dict(row) for row in await conn.fetch("SELECT * FROM memory_experiences ORDER BY id")]
             assert [{key: row[key] for key in rows[0]} for row in saved] == rows
             receipts = [
@@ -127,7 +129,7 @@ async def verify_m1(settings, source, originals, *, upgraded):
                     for row in saved
                 )
         if upgraded:
-            assert (await health_check())["schema_revision"] == "008"
+            assert (await health_check())["schema_revision"] == "013"
             for memory_id, args in proposals:
                 assert (await dispatch_tool("memory_experience_propose", args)) == {
                     "memory_id": memory_id,
@@ -185,7 +187,7 @@ async def m2_snapshot(settings, originals, *, create):
                 "memory_experience_review",
                 {"project_id": args["project_id"], "memory_id": parent, "action": "forget", "expected_version": 3},
             )
-        assert (await health_check())["schema_revision"] == "008"
+        assert (await health_check())["schema_revision"] == "013"
         async with pool.acquire() as conn:
             return {
                 table: [dict(row) for row in await conn.fetch("SELECT * FROM " + table + " ORDER BY 1,2")]

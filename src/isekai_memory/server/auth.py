@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from isekai_memory.continuity.tools import CONTINUITY_SCOPES
+from isekai_memory.handoff.tools import COLLABORATION_SCOPES
 from isekai_memory.server.errors import MemoryToolError
 from isekai_memory.store import queries
 from isekai_memory.team.tools import TEAM_SCOPES
@@ -119,6 +121,10 @@ _PROJECT_SCOPED_TOOLS = {
 
 _TOOL_SCOPES.update(TEAM_SCOPES)
 _PROJECT_SCOPED_TOOLS.update(TEAM_SCOPES)
+_TOOL_SCOPES.update(COLLABORATION_SCOPES)
+_PROJECT_SCOPED_TOOLS.update(COLLABORATION_SCOPES)
+_TOOL_SCOPES.update(CONTINUITY_SCOPES)
+_PROJECT_SCOPED_TOOLS.update(CONTINUITY_SCOPES)
 
 
 def authorize_tool(principal: Principal, tool_name: str, arguments: dict[str, Any]) -> None:

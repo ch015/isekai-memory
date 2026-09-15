@@ -18,25 +18,32 @@ _PUBLIC_COLUMNS = """
 """
 
 
-async def list_for_review(*, project_id: str, status: str, limit: int, offset: int, cursor: str | None = None) -> dict:
-    scope = ["queue", project_id, status]
+async def list_for_review(*, project_id: str, status: str, limit: int, offset: int, cursor: str | None = None,
+                          actor_id: str | None = None, metadata_only: bool = False,
+                          maximum: str = "restricted", memory_id: str | None = None) -> dict:
+    from isekai_memory.continuity.overview import read_transaction
+
+    levels = ("public", "internal", "confidential", "restricted")
+    scope = ["queue-v2", project_id, actor_id, status, maximum, str(metadata_only), memory_id]
     at, row_id = pagination.decode(cursor, scope)
-    async with get_pool().acquire() as conn:
+    columns = _PUBLIC_COLUMNS
+    if metadata_only:
+        columns = ",".join(key.strip() for key in columns.split(",") if key.strip() not in {"source", "content", "tags"})
+    async with read_transaction() as conn:
+        now = await conn.fetchval("SELECT transaction_timestamp()")
         rows = await conn.fetch(
-            f"SELECT {_PUBLIC_COLUMNS}, (expires_at <= now()) IS TRUE AS expired "
+            f"SELECT {columns}, (expires_at <= now()) IS TRUE AS expired "
             "FROM memory_experiences WHERE project_id=$1 AND status=$2 "
             "AND ($5::timestamptz IS NULL OR (created_at,id)<($5,$6::uuid)) "
+            "AND classification=ANY($7::text[]) AND ($8::uuid IS NULL OR id=$8) "
             "ORDER BY created_at DESC, id DESC LIMIT $3 OFFSET $4",
-            project_id,
-            status,
-            limit + 1,
-            offset,
-            at,
-            row_id,
+            project_id, status, limit + 1, offset, at, row_id,
+            list(levels[:levels.index(maximum) + 1]), memory_id,
         )
     result = pagination.page([dict(row) for row in rows], limit, scope, offset if cursor is None else None)
     result.setdefault("next_offset", None)
-    return result
+    return {**result, "project_id": project_id, "actor_id": actor_id, "observed_at": now,
+            "cache_policy": "no_store", "metadata_only": metadata_only, "max_classification": maximum}
 
 
 async def history(*, project_id: str, memory_id: str, limit: int, cursor: str | None = None) -> dict:

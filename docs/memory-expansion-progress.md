@@ -5,7 +5,7 @@ Design: [memory-expansion.md](memory-expansion.md).
 Core baseline update: the initial M3–M6 Core checks below are historical. After
 the user's latest-remote concern, Core was reconciled onto `3fb6480`; see
 [Core latest-remote reconciliation](core-latest-reconciliation.md) for the
-**333-pass current Core unit suite**, preserved state and remaining optional
+**333-pass historical Core unit suite**, preserved state and remaining optional
 fixture-coverage limitation.
 The reconciled Core integration was subsequently committed as `f4dfa11` and
 pushed to both Core remotes on `master`, excluding the pre-existing state DB.
@@ -19,6 +19,365 @@ pushed to both Core remotes on `master`, excluding the pre-existing state DB.
 | M4 | complete (local baseline) | [Generation contract](memory-generation.md): durable offline extraction and approved-reference project/phase snapshots; remote semantic generation remains deferred |
 | M5 | complete (local baseline) | [Native Skill contract](memory-skills.md): source-bound scaffolds, authored revisions, review and deterministic export accepted by existing Core verifier |
 | M6 | complete (local baseline) | [Team asset contract](memory-team-assets.md): exact-version grants, pushed Wiki snapshots, quarantined native exchange and explicit outcome feedback |
+| M7 | complete (local baseline) | [Collaboration contract](memory-collaboration.md): multi-user delivery inbox/status and fenced lease renewal; automatic delivery and Core continuation remain follow-up work |
+| M8 | complete (local implementation and validation) | [Project continuity](memory-project-continuity.md): admin-managed 1:N policy, independent deliveries, fenced work/reassignment, stored checkpoints and opt-in Core capture/local-MCP preparation. Deployment and project activation remain explicit; no automatic execution |
+| M9 | complete (local implementation and synthetic validation) | [Acceptance](memory-m9-acceptance.md): user/admin TUI, controller/worker observation, token monitoring, user work/lease and durable events; no deployment or real subscription execution |
+| M10 | planned | Broader team/membership operations and operational automation; external connectors deferred |
+
+## M9 final acceptance — 2026-09-14
+
+Current schema: 013. Catalog: 82 tools. The user/admin console, 1:N recovery,
+controller/worker observation, token monitoring, experience review, user work
+sessions and independent lease keeper, and durable cursor recovery are implemented.
+The final results and explicit exclusions are in [M9 acceptance](memory-m9-acceptance.md).
+Token monitoring is frozen at the user's requested scope; no cost, billing or budget
+feature is being added. All sections below are historical intermediate results.
+
+## Historical M9 runtime progress — 2026-09-14
+
+### Current usage ledger/reporter/TUI slice
+
+[Usage runtime contract](memory-usage-runtime.md) supersedes the earlier pure
+metrics-only milestone below. Schema 012 and 80 tools now provide independent
+opt-in collection/retention/alerts, actor-owned exclusive runs, immutable exact
+receipts, full-set scoped period/group totals, bounded rate/retention handling,
+Codex 0.154.0 numeric parsing, Core runtime reporting and a bounded owner-only
+outbox. TUI f edits filters; j edits usage policy with exact pending-request retry.
+Unknown/unsupported/initial context estimates are never reported as zero consumption.
+
+Validated: Memory 633 full tests then 12 usage DB tests including additional active
+claim proof, late reporting after takeover, source erasure and rate-limit rollback;
+Core 703 full passes/1 sandbox skip, then 59 focused parser/reporter/read/boundary
+passes including the real execution path with a fake worker. HTTP/stdio/TUI 80-tool
+smokes and parser→outbox→HTTP reply-loss recovery passed (own 60/project 180).
+Populated M8/presence preservation and 012 downgrade refusal also passed.
+These are synthetic/local checks, not real subscription or deployment validation.
+M9 remains open for controller/user actions, experience review and durable events.
+
+The following sections are historical intermediate milestones.
+
+### M9-4 administrator policy and continuity action slice
+
+Core --manage now supports all ten M8 policy fields including sender-specific
+1:N/default/backups, separate presence policy, checkpoint recovery publication,
+explicit work assignments/reassignment, bounded admin audit and ID-confirmed
+checkpoint body erasure. These are server operations, never local restoration,
+recipient impersonation, automatic execution or process termination.
+
+Requests pin policy/bundle versions and every work generation. Emergency takeover
+requires enabled policy, explicit affected keys and the running-process warning.
+All large-preview pages must be visited before final confirmation. Eligible users
+are paged in groups of 50; full policy size is bounded at 2 MiB per call.
+
+A credential snapshot binds each preflight and write. One owner-only pending
+request per connection/actor is written durably before sending, with nonblocking
+cross-process locking through the result write, no automatic retries, seven-day
+retry retention and stale-preview digest fencing. Server success and failure to
+store a local receipt remain distinct. Successful/discarded requests are scrubbed.
+
+- Focused Core policy/action/console/pending and boundary suite: **120 passed**.
+- Actual HTTP/stdio synthetic suite passed with **73 tools**, including prior
+  read-only and policy TUI tests plus two-recipient recovery, lost publish reply
+  exact retry, emergency reassignment after an actual work claim, audit and
+  erasure revoking dependent deliveries/claims (generations 1 → 2 → 3).
+- Production data, migrations and login are unchanged. No subscription CLI,
+  real project activation, deployment, commit or push. Tests erased only their
+  newly created synthetic checkpoint body. Previous full-suite/wheel counts
+  below are historical; final regression/packaging for this slice is separate.
+
+M9 and M9-4 are not complete: experience review, token ledger/policies, actual
+controller lifecycle, local user intake/lease actions and durable events remain.
+
+Final administrator-slice verification (including clearing open forms after an
+admin-role downgrade or credential failure):
+
+- Core full unit suite: **648 passed, 1 sandbox process-table skip**. That same
+  process-tree cleanup scenario passed separately with approved process access:
+  **649 scenarios covered**, not one no-skip full-suite run.
+- Final Core wheel installed into the temporary Python **3.11.16** console
+  environment passed **120 console/admin/pending tests**, using installed code
+  rather than editable source. Base packaging/import was also checked without
+  Textual/Rich. The console dependency remains optional, pinned at Textual 8.2.8.
+- Actual HTTP/stdio and all existing/new synthetic Core TUI scripts passed again
+  after the final role fence. Ruff and git diff --check passed; the user's staged
+  Core state DB has no new unstaged changes. No code was committed or pushed.
+
+The read-only milestone below predates the administrator forms above.
+
+### M9-2b pure normalized token metrics — first slice
+
+The no-I/O usage_metrics module now distinguishes reported/estimated/unavailable
+per field, validates totals and cache/reasoning subsets, preserves unknown versus
+zero, rejects counter resets/downgrades in an epoch, and aggregates bounded
+latest non-overlapping snapshots with quality-specific partial coverage.
+**29 pure tests passed; Memory full PostgreSQL regression: 593 passed, no skips**
+(2,008 dependency warnings). Schema remains 011 and the catalog remains 73 tools.
+
+This does not implement a host parser, usage meter registration, durable receipt,
+parent-child reconciliation, time buckets, reporter/outbox, admin alert policy or
+usage TUI. The usage capability must remain false/null until those layers exist.
+Next implementation slice: authenticated usage meter/attempt ownership and a
+versioned receipt/latest-counter ledger with scoped period aggregates, followed
+by verified host mappings, an owner-bound outbox and TUI/alert policy integration.
+The pure arithmetic helper does not replace those identity or deduplication checks.
+
+### M9-3 first usable read-only TUI
+
+Core now exposes isekai watch with optional console extra (Textual 8.2.8),
+owner-controlled connection profiles, mine/admin-project scopes, metadata tabs,
+presence views, classification/CLI filters, live pagination and explicit unknown
+usage. No Kernel/State/Lock/bootstrap or observer starts from watch.
+
+Single-flight daemon reads have generation fencing, bounded clients, jitter/
+backoff, stale last-confirmed display, and immediate clearing on auth/protocol
+errors or scope changes. Metadata detail never fetches bodies or mutates state.
+ANSI/OSC/control strings are stripped before plain rendering. Admin editing
+forms and local workflow commands remain unimplemented, including under --manage.
+
+- **47 new model/profile/headless UI tests + 2 package boundary tests passed**.
+- Real HTTP + Textual headless admin/recipient flows passed over 73-tool Memory:
+  32 bounded read calls for both actors, zero mutation calls, no local checkout.
+- Built Core wheel, verified console modules and optional-only Textual metadata.
+  Python **3.11.16** clean base install imports without Textual/Rich; the same
+  wheel plus console extra passed all **47 console tests**, not editable source.
+- Core full unit regression: **575 passed, 1 sandbox process-table skip**.
+  That skipped process-tree cleanup regression passed separately with approval:
+  **576 unit scenarios covered**, not a single no-skip full-suite run.
+  Actual subscription-host tests were not selected or run. Ruff/whitespace pass.
+- No real project was activated. Existing staged Core state DB remains unchanged.
+  No deployment, login implementation, subscription CLI, commit or push.
+
+This is a concrete TUI milestone, not M9 completion. Next required work remains
+admin policy/recovery/reassignment forms and durable receipts, token accounting,
+actual controller lifecycle and local workflow/lease integration, plus events.
+
+## M9 presence milestone — 2026-09-11
+
+### M9-2a persistence, worker observer and metadata reader
+
+[Runtime contract](memory-presence-runtime.md): additive schema 011, eight new
+tools (73 total), independent opt-in/admin policy, actor/private-capability-bound
+register/report/end, non-refreshing retries, continuous idle, read-only whole-set
+user aggregation and explicit bounded retirement with anti-replay tombstones.
+
+Core adds a no-SQLite worker lifecycle reporter and scoped PresenceClient.
+The reporter reconciles lost replies against committed state and sends current
+observations only. Overview now distinguishes API availability from collection.
+Actual long-lived MCP controller integration and TUI are not implemented yet.
+
+- New tests: 45 pure decisions + 21 input/auth + 12 presence DB scenarios.
+- Core reporter: 27 tests; presence reader: 57 tests, including conservative user
+  aggregates and capability-versus-observation distinction.
+- Actual HTTP and stdio synthetic suites passed with 73 tools. Core reporter and
+  pinned reader verified two independent actors, waiting/approval and ended states.
+  No subscription CLI account was used.
+- A fresh dedicated DB verified populated M8 preservation through 010→011,
+  empty-presence rollback, and refusal to roll back any observed history.
+- Final Memory suite on the dedicated PostgreSQL 16 DB: **564 passed**, no skips
+  (2,008 dependency warnings). Core full suite: **528 passed, 5 skipped**;
+  four skips are explicitly unauthorized live subscription-host tests. The fifth
+  sandbox process-table regression passed separately with approval (**529 unit
+  scenarios covered**, not one no-skip full-suite run). Ruff and whitespace pass.
+- The existing staged Core state DB is preserved. No real project opt-in,
+  production migration, login work, deployment, commit or push.
+
+Goal remains active: required controller lifecycle, token receipts/aggregation,
+TUI views and admin forms, Core action integration and reconnect/event validation
+remain. The following preparation and M9-1 counts are historical milestones.
+
+## M9 implementation preparation — 2026-09-11
+
+### M9-1 runtime slice — 2026-09-11
+
+[Read-model contract](memory-collaboration-read-model.md): two read-only tools
+(65 total), mine/project-admin scopes, identical list/count visibility, explicit
+inactive and partial states, bounded live cursors and unavailable telemetry.
+The Core client validates pinned DTOs without opening Kernel/SQLite, enforces
+response limits and pins actor identity; errors never become cached success.
+
+- Memory full suite on the new synthetic PostgreSQL 16 DB: **478 passed**,
+  no skips; new read-model tests: **27 passed**.
+- Core new client plus package boundaries: **42 passed**. After repairing the
+  moved-path editable installation, the full unit suite passed **444 tests**
+  with one sandbox process-table skip; that one test passed separately with
+  approved process-table access (**445 covered in total**, not one no-skip run).
+- Actual HTTP and stdio expose 65 tools; real Core overview/list queries pass
+  after M8's revoked-sender/two-recipient recovery fixture. No query changed the
+  recorded delivery/work state; missing idle/usage remained unavailable/null.
+- Ruff and whitespace checks passed. Schema remains 010; only the new disposable
+  test DB was initialized. No production migration or project activation.
+- Core and Memory editable package registrations were refreshed with --no-deps
+  at the moved paths, without upgrading runtime dependencies or editing the
+  user's staged Core state database.
+
+Goal mode is active for the remaining M9 implementation. This milestone is not
+completion of the TUI, telemetry collectors, admin workflows or durable updates.
+
+### M9-2a pure idle decisions — in progress, 2026-09-11
+
+The first presence implementation adds the no-I/O presence_state module:
+bounded policy values, fresh/stale/ended/unknown separation, continuous-idle
+interval resets on reconnect/clock reversal, and scoped multi-session aggregation.
+Heartbeat-only updates preserve idle start; a user is idle only when all known
+open sessions are idle, with the shortest shared duration. Running plus a stale
+session retains both the running state and uncertainty.
+
+- **45 pure fake-clock tests passed**; Ruff passed. Tests cover 299/300 seconds,
+  59/60-second freshness, quiet running/approval, incomplete observations, mixed
+  sessions, page incompleteness, policy changes and invalid policy limits.
+- This module is not connected to real collection yet. No presence migration,
+  register/heartbeat/end tools, Core observer or TUI was enabled by this slice.
+  The M9-1 API correctly continues to advertise telemetry as unavailable.
+- Next: additive presence persistence and administrator policy, actor/session
+  binding and monotonic reports, then Core opt-in observer and TUI integration.
+  The goal remains active; token usage, admin forms and durable updates still
+  require implementation and their own acceptance tests.
+
+The user requires both contributors and administrators to work from the same
+terminal dashboard. [The M9 plan](memory-collaboration-tui.md) specifies the
+role-aware screens, all M8 admin policy/recovery actions, metadata/session APIs,
+Core integration boundaries and staged acceptance tests. Admin TUI is required,
+not a later web-only substitute. The existing M8 catalog remains 63 tools.
+
+This preparation changes documentation only: no TUI/runtime code, new tools,
+migrations, dependency installation, project activation, deployment or Git push.
+The first implementation slice is M9-1 scoped read APIs and their no-mutation
+tests. Existing moved-path venv and write-permission preflight remain explicit.
+
+### TUI refinement: idle visibility, login deferred — 2026-09-11
+
+New login and Nunchi authentication integration are explicitly deferred; M9
+continues with existing project tokens and host-local credential references.
+[Presence/idle design](memory-presence-idle.md) distinguishes observer freshness,
+reported execution, work ownership and confirmed storage. It specifies scoped
+multi-session user aggregation, server-clock durations, stale/reconnect behavior,
+administrator observation policy and a deterministic acceptance matrix.
+Idle means observed Core work inactivity, not human absence or availability.
+This is a documentation refinement only; no presence collector, idle detector,
+TUI runtime, authentication change or production setting was implemented.
+
+### TUI refinement: token usage visibility — 2026-09-11
+
+[Token usage design](memory-token-usage.md) adds user/project/work/session/CLI/model
+views, input/output/cache semantics, reported-versus-estimated quality and explicit
+missing coverage. Current Core context usage is an initial prompt-size estimate,
+not a normalized model-consumption ledger. M9-2b plans host parsers and durable
+receipts with cumulative/retry/parent-child deduplication, scoped period aggregates
+and soft administrator alerts; M9-3/M9-4 expose them in the common TUI.
+CLI-specific usage availability remains subject to versioned interface verification.
+No usage collector, new tool, schema, TUI runtime, login integration, pricing lookup
+or account-quota connection was implemented. This change is documentation only;
+design checks are not runtime or actual subscription-usage verification results.
+
+## M8 scope addition — 2026-09-10
+
+The user requires project administrators to predesignate handoff recipients for
+unexpected user departure. Fixed per-handoff recipients alone cannot satisfy
+this: the departing user may be the recipient, or the sender may never have
+published a handoff. The [continuity design](memory-project-continuity.md)
+therefore adds project sender-to-recipient **1:N** policies, optional backups,
+independent recipient delivery/acknowledgement, explicit work-unit ownership,
+audited reassignment and recoverable server checkpoints. Multiple recipients
+are active successors, not merely one primary and N standbys. These are
+requirements are implemented by schema `010` and the opt-in Core integration.
+The schema `009` package baseline remains the single-recipient contract.
+
+## Expanded M8 validation — 2026-09-11
+
+Seventeen new Memory tools (63 total) implement administrator policy/eligible
+identities, immutable checkpoints, 1:N publication, independent delivery,
+work-unit claims and audited reassignment. Core changes are based on fetched
+`a7caff2` (HEAD matched origin/master), preserving the user's staged state DB.
+Nine local Core MCP tools and matching CLI operations expose explicit intake;
+worker capture is opt-in and never auto-enables a real project.
+
+- Final Memory regression on a fresh PostgreSQL 16 database at schema 010:
+  **449 passed**, no skips (1774 existing/dependency warnings), including
+  48 new pure unit and 19 new PostgreSQL cases. This includes the final DB
+  guard rejecting legacy mutation of continuity-managed sources.
+- Final Core unit regression: **405 passed**. Four tree-sitter dependencies
+  already declared by its latest commit were installed into its local venv;
+  dependency declarations were not changed. Tests include lost-response retry,
+  digest-verified checkpoint receipts, start/periodic/end capture and explicit
+  capture-gap reporting, executable snapshots and local-MCP activation guards.
+- Live Core → HTTP Memory → two Core recipients passed: stored tracked and
+  untracked changes recovered after revoking the sender, independent intake,
+  separate work claims and isolated preparation, with no automatic execution.
+  The final run also exercised Core renewal, release/reclaim, stale-generation
+  rejection and reported completion. HTTP/stdio exposed all 63 Memory tools.
+- Populated 009 ↔ 010 migration preserved existing claims/payloads and refused
+  populated continuity rollback. All six earlier migration smoke scripts also
+  passed through 010 in separate empty disposable databases.
+- The final 009 ↔ 010 smoke was repeated on a fresh separate database after
+  the DB guard was added; preservation and populated rollback refusal passed.
+- Memory and Core wheels built successfully. Imports from the extracted wheels
+  confirmed 63 Memory tools, nine Core continuity tools and the packaged Core
+  Project schema. Memory migrations remain source-deployment assets, not wheel
+  contents; deploy the matching Alembic configuration/migrations explicitly.
+- Ruff and git diff --check passed for both changed codebases. The user's
+  staged Core .isekai/state.db was preserved without additional unstaged changes.
+- During final packaging, the repository tree moved from security-philip/isekai
+  to security-philip/security-project/isekai. The same worktrees and Core commit
+  were confirmed at the new location and packaging checks completed there.
+- The dedicated test PostgreSQL container was stopped with its synthetic data
+  retained. No production migration, project opt-in, commit, push or automatic
+  worker execution was performed.
+
+## M8 package-baseline validation — 2026-09-10
+
+M8 extends the existing push/claim contract without adding tools (46 total).
+Schema `009` adds version, recipient, continuation and continuation digest;
+existing version-1 payload hashes are unchanged. Addressed delivery requires
+the designated actor and explicit version-2 opt-in; legacy list/pull exclude it.
+Packets describe portable sources and uncommitted changes but grant no execution
+authority. Core preflight is a documented requirement, not an implemented Core
+resume workflow.
+
+- Full PostgreSQL 16 suite: **382 passed**, no skips, including 19 new M8 DB
+  cases. No-DB suite: **257 passed, 125 skipped**, including 40 M8 unit cases.
+  Existing Python/asyncio deprecation warnings remain.
+- M7/M8 focused DB suite: **38 passed**. Tests cover non-recipient admin denial,
+  claim opt-in, recipient preservation after expiry/nack, private-token recovery,
+  immutable recipient/package conflicts, live recipient token checks, replay
+  after recipient revocation, one-winner concurrency and cross-project denial.
+- Populated `008 → 009 → 008 → 009` migration smoke preserved legacy source and
+  active claim fields. With M8 data, downgrade refused atomically for pending,
+  claimed, acknowledged and expired states without discarding payloads.
+- Actual HTTP/stdio E2E passed, including addressed delivery, legacy intake
+  exclusion, package/digest round trip and the required preflight descriptor.
+  All five earlier populated migration smoke scripts also passed through `009`.
+- Isolated wheel packaging passed. Runtime dependency declarations were unchanged.
+- `ruff check src migrations tests` and `git diff --check`: passed.
+
+Only task-created disposable PostgreSQL databases were migrated. No Core code,
+configured application database, Git remote, automatic polling or notification
+deployment was changed. Existing M7 worktree changes were retained.
+
+## M7 validation — 2026-09-10
+
+Priority is multi-user work continuity, not adding Jira/Wiki/Nunchi tools.
+Three additive tools expose bounded project/user views, expired recoverable
+leases, sender-visible delivery state and absolute-deadline renewal. The old
+handoff contracts, immutable payloads and schema `008` are unchanged.
+
+- Full pytest on local Python 3.14 and a newly created disposable PostgreSQL 16:
+  **323 passed**, no skips (106 PostgreSQL cases, including 19 M7 cases).
+- Without a test DB: **217 passed, 106 explicitly skipped**. M7 contributes 39
+  unit/contract cases. Existing asyncio/Python deprecation warnings remain.
+- `ruff check src migrations tests` and `git diff --check`: passed.
+- Wheel packaging with isolated build dependencies passed; the archive includes
+  all three new handoff modules. Project runtime dependencies were not changed.
+- Actual HTTP and stdio subprocess E2E: **46 tools**, existing M1–M6 flows,
+  plus distinct publisher/recipient identities, wrong-owner/read-only/project
+  rejection, monotonic renewal/retry and publisher-visible acknowledgement.
+- Concurrent claims have one winner; repeated renewals extend once; old owners
+  cannot renew/ack/nack after replacement. A renew waiting for a row lock samples
+  DB time after the lock and rejects expiry. Reads disclose no claim capability,
+  envelope or raw output. Cursor, classification and revocation tests passed.
+
+No Core files, configured application DB, production deployment or Git remote
+were changed. No automatic notifications or background polling were enabled.
+All DB writes used synthetic test projects in the task-created container.
 
 ## M1 implementation checklist
 

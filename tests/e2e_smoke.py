@@ -91,7 +91,7 @@ def mcp_tool(token: str, name: str, arguments: dict[str, Any]) -> Any:
 
 def main() -> None:
     status, ready, _ = request("/ready")
-    assert status == 200 and ready == {"database": "ok", "schema_revision": "008"}, ready
+    assert status == 200 and ready == {"database": "ok", "schema_revision": "013"}, ready
 
     discovered = mcp("server/discover", token=ADMIN_TOKEN)
     assert discovered["supportedVersions"] == [PROTOCOL_VERSION]
@@ -100,7 +100,7 @@ def main() -> None:
     assert discovered["_meta"]["io.modelcontextprotocol/serverInfo"]["name"] == "isekai-memory"
     listed = mcp("tools/list", token=ADMIN_TOKEN)
     names = {tool["name"] for tool in listed["tools"]}
-    assert len(names) == 43, names
+    assert len(names) == 82, names
     assert "memory_search" in names and "memory_experience_review" in names
     assert "memory_artifact_publish" not in names
     assert isinstance(mcp_tool(ADMIN_TOKEN, "memory_repo_list", {}), list)

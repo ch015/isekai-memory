@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from typing import Any
 
+from isekai_memory.server.errors import MemoryToolError
 from isekai_memory.store.database import get_pool
 
 # --- Artifact Registry ---
@@ -127,20 +129,39 @@ async def insert_handoff(
     handoff_note: str | None, task_envelope: dict[str, Any],
     result_envelope: dict[str, Any], context_digest: str, raw_output: str | None,
     lock_snapshot_digest: str, envelope_digest: str, payload_digest: str,
-    expires_at: datetime,
+    expires_at: datetime, handoff_version: int = 1, recipient_user_id: str | None = None,
+    continuation: dict[str, Any] | None = None, continuation_digest: str | None = None,
 ) -> dict[str, Any] | None:
     pool = get_pool()
-    async with pool.acquire() as conn:
+    async with pool.acquire() as conn, conn.transaction():
+        # Serialize publication/replay before checking current recipient reachability.
+        await conn.execute("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
+                           "handoff-push:" + json.dumps([project_id, phase_attempt_id]))
+        if await conn.fetchval("SELECT EXISTS(SELECT 1 FROM handoffs WHERE project_id=$1 AND phase_attempt_id=$2)",
+                               project_id, phase_attempt_id):
+            return None
+        if recipient_user_id is not None:
+            reachable = await conn.fetchval(
+                """SELECT EXISTS(SELECT 1 FROM access_tokens
+                   WHERE project_id=$1 AND user_id=$2 AND revoked_at IS NULL
+                     AND (expires_at IS NULL OR expires_at > clock_timestamp())
+                     AND ('admin'=ANY(scopes) OR ('read'=ANY(scopes) AND 'write'=ANY(scopes))))""",
+                project_id, recipient_user_id,
+            )
+            if not reachable:
+                raise MemoryToolError("Recipient is not available for handoff in this project",
+                                      data={"error_code": "MEM-HANDOFF-0013"}, http_status=400)
         row = await conn.fetchrow(
             """
             INSERT INTO handoffs (
                 project_id, unit_id, phase_attempt_id, phase_id, from_user,
                 result_status, classification, task_summary, passed_checks, artifacts_produced, handoff_note,
                 task_envelope, result_envelope, context_digest, raw_output,
-                lock_snapshot_digest, envelope_digest, payload_digest, expires_at
+                lock_snapshot_digest, envelope_digest, payload_digest, expires_at,
+                handoff_version, recipient_user_id, continuation, continuation_digest
             ) VALUES (
                 $1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11,
-                $12::jsonb,$13::jsonb,$14,$15,$16,$17,$18,$19
+                $12::jsonb,$13::jsonb,$14,$15,$16,$17,$18,$19,$20,$21,$22::jsonb,$23
             )
             ON CONFLICT (project_id, phase_attempt_id) DO NOTHING
             RETURNING id, created_at, expires_at
@@ -149,6 +170,7 @@ async def insert_handoff(
             result_status, classification, task_summary, passed_checks, artifacts_produced, handoff_note,
             task_envelope, result_envelope, context_digest, raw_output,
             lock_snapshot_digest, envelope_digest, payload_digest, expires_at,
+            handoff_version, recipient_user_id, continuation, continuation_digest,
         )
     return dict(row) if row is not None else None
 
@@ -173,7 +195,7 @@ async def list_pending_handoffs(*, project_id: str, unit_id: str | None = None) 
         await conn.execute(
             """
             UPDATE handoffs SET status='expired'
-            WHERE project_id=$1 AND status='pending' AND expires_at <= now()
+            WHERE project_id=$1 AND status='pending' AND expires_at <= now() AND handoff_version=1 AND NOT continuity_managed
             """,
             project_id,
         )
@@ -182,7 +204,7 @@ async def list_pending_handoffs(*, project_id: str, unit_id: str | None = None) 
             SELECT id, unit_id, phase_id, from_user, result_status, classification, task_summary,
                    handoff_note, created_at, expires_at
             FROM handoffs
-            WHERE project_id=$1 AND status='pending' AND expires_at > now()
+            WHERE project_id=$1 AND status='pending' AND expires_at > now() AND handoff_version=1 AND NOT continuity_managed
               AND ($2::text IS NULL OR unit_id=$2)
             ORDER BY created_at DESC
             """,
@@ -204,7 +226,7 @@ async def claim_handoff(
                 claim_token_digest=NULL, claim_lease_expires_at=NULL,
                 claim_generation=claim_generation + 1,
                 claim_disposition=NULL, claim_reason_code=NULL
-            WHERE id=$1::uuid AND status='pending' AND expires_at > now()
+            WHERE id=$1::uuid AND status='pending' AND expires_at > now() AND handoff_version=1 AND NOT continuity_managed
               AND ($3::text IS NULL OR project_id=$3)
             RETURNING id, project_id, unit_id, phase_attempt_id, phase_id, from_user,
                       result_status, classification, task_summary, passed_checks, artifacts_produced, handoff_note,
@@ -218,7 +240,7 @@ async def claim_handoff(
 
 async def claim_handoff_lease(
     *, handoff_id: str, project_id: str, claimed_by: str,
-    claim_token_digest: str, lease_seconds: int,
+    claim_token_digest: str, lease_seconds: int, accept_handoff_version: int = 1,
 ) -> dict[str, Any] | None:
     """Acquire or replay a recoverable claim while serializing contenders."""
     pool = get_pool()
@@ -226,7 +248,7 @@ async def claim_handoff_lease(
         locked = await conn.fetchrow(
             """
             SELECT status, claimed_by, claim_token_digest, claim_lease_expires_at,
-                   expires_at
+                   expires_at, handoff_version, recipient_user_id, continuity_managed
             FROM handoffs
             WHERE id=$1::uuid AND project_id=$2
             FOR UPDATE
@@ -235,6 +257,9 @@ async def claim_handoff_lease(
         )
         db_now = await conn.fetchval("SELECT clock_timestamp()")
         if locked is None or locked["expires_at"] is None or locked["expires_at"] <= db_now:
+            return None
+        if (locked["continuity_managed"] or locked["handoff_version"] > accept_handoff_version
+                or locked["recipient_user_id"] not in (None, claimed_by)):
             return None
         replay = (
             locked["status"] == "claimed"
@@ -250,7 +275,8 @@ async def claim_handoff_lease(
                        result_status, classification, task_summary, passed_checks, artifacts_produced, handoff_note,
                        task_envelope, result_envelope, context_digest, raw_output,
                        lock_snapshot_digest, envelope_digest, claimed_by, claimed_at,
-                       claim_lease_expires_at, claim_generation, expires_at
+                       claim_lease_expires_at, claim_generation, expires_at,
+                       handoff_version, recipient_user_id, continuation, continuation_digest, payload_digest
                 FROM handoffs WHERE id=$1::uuid
                 """,
                 handoff_id,
@@ -293,7 +319,8 @@ async def claim_handoff_lease(
                       result_status, classification, task_summary, passed_checks, artifacts_produced, handoff_note,
                       task_envelope, result_envelope, context_digest, raw_output,
                       lock_snapshot_digest, envelope_digest, claimed_by, claimed_at,
-                      claim_lease_expires_at, claim_generation, expires_at
+                      claim_lease_expires_at, claim_generation, expires_at,
+                      handoff_version, recipient_user_id, continuation, continuation_digest, payload_digest
             """,
             handoff_id, claimed_by, claim_token_digest, lease_seconds,
         )
@@ -313,10 +340,12 @@ async def get_claimed_handoff(
                    result_status, classification, task_summary, passed_checks, artifacts_produced, handoff_note,
                    task_envelope, result_envelope, context_digest, raw_output,
                    lock_snapshot_digest, envelope_digest, claimed_by, claimed_at,
-                   claim_lease_expires_at, claim_generation, expires_at
+                   claim_lease_expires_at, claim_generation, expires_at,
+                   handoff_version, recipient_user_id, continuation, continuation_digest, payload_digest
             FROM handoffs
-            WHERE id=$1::uuid AND project_id=$2 AND status='claimed'
+            WHERE id=$1::uuid AND project_id=$2 AND status='claimed' AND NOT continuity_managed
               AND claimed_by=$3 AND claim_token_digest=$4
+              AND (recipient_user_id IS NULL OR recipient_user_id=$3)
               AND claim_lease_expires_at > clock_timestamp() AND expires_at > clock_timestamp()
             """,
             handoff_id, project_id, claimed_by, claim_token_digest,

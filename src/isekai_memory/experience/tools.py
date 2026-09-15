@@ -71,7 +71,7 @@ EXPERIENCE_TOOLS = [
     ),
     _tool(
         "memory_experience_list",
-        "Admin-only review queue, including inactive and expired entries.",
+        "Admin-only bounded review queue; metadata_only omits source/content/tags, exact memory_id supports explicit detail.",
         [],
         {
             "status": {
@@ -81,6 +81,9 @@ EXPERIENCE_TOOLS = [
             "limit": _LIMIT,
             "cursor": _CURSOR,
             "offset": {"type": "integer", "minimum": 0, "maximum": 10000, "default": 0},
+            "metadata_only": {"type": "boolean", "default": False},
+            "max_classification": {**_CLASSIFICATION, "default": "restricted"},
+            "memory_id": _UUID,
         },
     ),
     _tool(

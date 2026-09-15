@@ -24,6 +24,7 @@ class ToolDispatcher:
     async def __call__(self, tool_name: str, arguments: dict[str, Any], principal: Principal) -> Any:
         from isekai_memory.experience import service as experience
         from isekai_memory.generation import queue, summaries
+        from isekai_memory.handoff import collaboration
         from isekai_memory.handoff.service import (
             acknowledge_claimed_handoff,
             claim_handoff_recoverable,
@@ -43,6 +44,12 @@ class ToolDispatcher:
 
         validate_tool_arguments(tool_name, arguments)
         authorize_tool(principal, tool_name, arguments)
+
+        from isekai_memory.continuity.service import dispatch as dispatch_continuity
+        from isekai_memory.continuity.tools import CONTINUITY_SCOPES
+
+        if tool_name in CONTINUITY_SCOPES:
+            return await dispatch_continuity(tool_name, arguments, principal=principal)
 
         team_writes = {
             "memory_grant_create": grants.create, "memory_grant_revoke": grants.revoke,
@@ -99,8 +106,9 @@ class ToolDispatcher:
             return await experience_writes[tool_name](arguments, actor_id=principal.user_id)
         if tool_name == "memory_search":
             return await experience.search(arguments, strategy=self.settings.retrieval_strategy)
+        if tool_name == "memory_experience_list":
+            return await experience.list_for_review(arguments, actor_id=principal.user_id)
         experience_reads = {
-            "memory_experience_list": experience.list_for_review,
             "memory_experience_history": experience.history,
             "memory_read": experience.read,
         }
@@ -114,6 +122,12 @@ class ToolDispatcher:
             return await check_repo_updates(arguments, settings=self.settings)
 
         # --- Work Handoff -----------------------------------------------------
+        if tool_name == "memory_handoff_inbox":
+            return await collaboration.inbox(arguments, actor_id=principal.user_id)
+        if tool_name == "memory_handoff_status":
+            return await collaboration.status(arguments, actor_id=principal.user_id)
+        if tool_name == "memory_handoff_renew":
+            return await collaboration.renew(arguments, actor_id=principal.user_id, settings=self.settings)
         if tool_name == "memory_handoff_push":
             return await push_handoff(arguments, settings=self.settings, from_user=principal.user_id)
         if tool_name == "memory_handoff_pull":

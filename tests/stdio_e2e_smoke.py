@@ -51,6 +51,9 @@ def main() -> None:
             request(6, "tools/call", {"name": "memory_knowledge_list", "arguments": {"project_id": "stdio-e2e-project"}}),
             request(7, "tools/call", {"name": "memory_grant_list", "arguments": {"project_id": "stdio-e2e-project"}}),
             request(8, "tools/call", {"name": "memory_feedback_list", "arguments": {"project_id": "stdio-e2e-project"}}),
+            request(9, "tools/call", {"name": "memory_handoff_inbox", "arguments": {"project_id": "stdio-e2e-project"}}),
+            request(10, "tools/call", {"name": "memory_collaboration_overview", "arguments": {"project_id": "stdio-e2e-project"}}),
+            request(11, "tools/call", {"name": "memory_collaboration_list", "arguments": {"project_id": "stdio-e2e-project", "view": "work"}}),
             "",
         ]
     )
@@ -65,13 +68,13 @@ def main() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     responses = [json.loads(line) for line in completed.stdout.splitlines()]
-    assert len(responses) == 8, responses
+    assert len(responses) == 11, responses
 
     discovered = responses[0]["result"]
     assert discovered["supportedVersions"] == [PROTOCOL_VERSION]
     assert discovered["ttlMs"] == 3_600_000 and discovered["cacheScope"] == "public"
     assert "serverInfo" not in discovered
-    assert len(responses[1]["result"]["tools"]) == 43
+    assert len(responses[1]["result"]["tools"]) == 82
 
     db_call = responses[2]["result"]
     assert db_call["isError"] is False, db_call
@@ -79,15 +82,21 @@ def main() -> None:
     assert responses[3]["error"]["code"] == -32601
     assert responses[4]["result"]["isError"] is False
     assert responses[4]["result"]["structuredContent"]["items"] == []
-    for response in responses[5:]:
+    for response in responses[5:9]:
         assert response["result"]["isError"] is False and response["result"]["structuredContent"]["items"] == []
+    overview = responses[9]["result"]["structuredContent"]
+    assert responses[9]["result"]["isError"] is False and overview["actor_id"] == "local-stdio"
+    assert overview["identity"]["local"] is True and overview["counts"]["work"]["value"] == 0
+    assert overview["telemetry"]["idle"]["value"] is None
+    assert responses[10]["result"]["isError"] is False
+    assert responses[10]["result"]["structuredContent"]["items"] == []
 
     print(
         json.dumps(
             {
                 "mcp_protocol": PROTOCOL_VERSION,
                 "server_discover": True,
-                "tool_count": 43,
+                "tool_count": 82,
                 "experience_search": True,
                 "database_tool_call": True,
                 "initialize_rejected": True,

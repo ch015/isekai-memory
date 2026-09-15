@@ -7,6 +7,10 @@ Artifact distribution has moved to Git Releases — Foundation and Preset archiv
 ## Implemented scope
 
 - Correlated Task/Result handoff push, pending list, compatibility pull, and recoverable claim leases
+- Multi-user available/claimed/sent inboxes, delivery status and fenced absolute-deadline lease renewal
+- Immutable recipient routing and bounded portable continuation descriptors with explicit client opt-in
+- Admin-managed 1:N successor policies, independent acknowledgements, fenced work ownership and audited emergency reassignment
+- Stored workspace checkpoints and opt-in Core capture/isolated preparation for unexpected departure
 - Repository registry for tracking Foundation/Preset release repositories (config-based, future UI administration planned)
 - Project-scoped tokens with `read`, `write`, and `admin` scopes
 - MCP 2026-07-28 over stdio and stateless Streamable HTTP JSON-RPC at `POST /mcp`
@@ -20,6 +24,12 @@ Artifact distribution has moved to Git Releases — Foundation and Preset archiv
 The staged expansion design and Tencent capability mapping are in
 [`docs/memory-expansion.md`](docs/memory-expansion.md). Delivery status is tracked
 in [`docs/memory-expansion-progress.md`](docs/memory-expansion-progress.md).
+
+Core now provides a shared contributor/admin terminal dashboard with scoped
+views and explicit 1:N policy, checkpoint recovery, reassignment, erasure and
+audit forms, user handover/preparation, controller/worker observation, token monitoring,
+experience review and durable change recovery. See [M9 acceptance](docs/memory-m9-acceptance.md)
+for local validation, supported telemetry and explicit operational exclusions.
 
 ### Removed / deferred
 
@@ -128,6 +138,9 @@ curl -sS http://localhost:8100/mcp \
 | `memory_handoff_get_claimed` | write | Recover the payload for an active lease |
 | `memory_handoff_ack` | write | Idempotently acknowledge a lease |
 | `memory_handoff_nack` | write | Idempotently release a lease with a bounded reason code |
+| `memory_handoff_inbox` | read | Bounded live available/claimed/sent views, including expired recoverable leases |
+| `memory_handoff_status` | read | Observe delivery metadata without claiming or consuming a handoff |
+| `memory_handoff_renew` | write | Monotonically extend an active owned generation to an absolute deadline, capped by retention |
 | `memory_experience_propose` | write | Propose a pending experience from a retained project handoff |
 | `memory_experience_list` | admin | Paginate the review queue or other lifecycle states |
 | `memory_experience_review` | admin | Approve/reject/archive/forget with expected version and replayable event receipt |
@@ -166,11 +179,104 @@ Clients generate a unique, high-entropy base64url `claim_token` (32–256 charac
 
 Lease duration is bounded by `ISEKAI_MEMORY_HANDOFF_CLAIM_LEASE_MIN_SECONDS`, `..._DEFAULT_SECONDS`, and `..._MAX_SECONDS` (defaults 30, 300, and 3600). JSON config uses `handoff.claim_lease_min_seconds`, `handoff.claim_lease_default_seconds`, and `handoff.claim_lease_max_seconds`.
 
+### Multi-user continuity (M7)
+
+Use separate project-scoped HTTP tokens for each user. The shared Memory server
+connects their handoff state; each Core still owns its execution and approvals.
+
+- `memory_handoff_inbox({project_id, view: "available"})` finds pending work and
+  abandoned **expired leases**, without consuming either. `view: "claimed"`
+  shows the current user's active leases; `view: "sent"` shows their deliveries.
+- Use recoverable `claim`, retain the private claim token, and verify the source
+  before continuing. `memory_handoff_status` lets teammates observe who acquired
+  a handoff and whether it was acknowledged, without receiving raw payloads.
+- For longer processing, call `memory_handoff_renew` with the same project,
+  handoff, private token and generation plus an absolute `lease_expires_at`.
+  Retry the **same deadline** on response loss. Renewal cannot revive an expired
+  lease, extend retention, or take ownership from another user/session.
+- Ack records handoff processing, **not completion of subsequent work**. Nack
+  returns it for another claim. A worker that loses its lease must not assume it
+  still owns the delivery; the server cannot stop a remote process.
+
+The inbox is paginated and read-only, not a durable notification feed. On each
+refresh, restart from the first page, deduplicate IDs and drain pages as needed;
+use status for already tracked deliveries. M7 does not install an automatic
+poller, fetch workspaces, add private recipient ACLs or auto-resume Core.
+The existing pending-only list and one-shot pull keep their old contracts.
+See [collaboration contracts and roadmap](docs/memory-collaboration.md).
+
+### Addressed continuation packages (M8)
+
+`memory_handoff_push` optionally accepts `recipient_user_id` and/or
+`continuation`. Either creates a version-2 handoff. Recipients must have a live
+read/write or admin token for the same project when a new handoff is published.
+Only the designated user can acquire it, even after lease expiry; admin does
+not override the recipient. This routes delivery, **not private project data**.
+
+The continuation describes the goal, last sender-reported verified state,
+exact repository commit, shared artifact hashes, uncommitted workspace state,
+remaining work, next steps and blockers. It never contains executable fetch
+commands or credentials. Local-only changes must be captured in a referenced
+snapshot or marked unavailable. Memory validates descriptors, not remote bytes.
+
+Version-2 rows do not appear in the legacy list and cannot be consumed by
+one-shot pull. A capable client uses `memory_handoff_inbox`, then passes
+`accept_handoff_version: 2` to recoverable claim. Claim/get return the package,
+its digest and a **required or blocked preflight**, never execution approval.
+Version-2 rows are deliberately protected from automatic legacy intake. The
+separate continuity workflow below supports explicit Core inspection and preparation.
+
+Run an explicit `alembic upgrade head` to apply current schema `010` before
+starting this version (`009` introduced these packages). Existing version-1
+payloads and digests are preserved. Downgrade
+to `008` is refused once any M8 row exists, even if expired or acknowledged.
+See [M8 package and recipient contract](docs/memory-continuation.md).
+
+### Project continuity and unexpected departure (M8)
+
+Project administrators configure sender-to-recipient 1:N designation, optional
+backups, retention, work leases, checkpoint intervals/byte/path limits and the
+emergency-takeover policy. Each recipient receives a separate delivery and ack;
+work units have independent, generation-fenced ownership. Reassignment is
+version-checked and audited, and cannot stop an already running remote process.
+
+Stored checkpoints retain approved changed-file bytes independently of the
+sender's token. Administrators can publish a saved checkpoint after departure,
+split work between recipients, inspect history and explicitly forget source
+bodies. There is no automatic departure detection or backup promotion.
+
+Core provides nine local MCP tools and matching `isekai memory continuity`
+commands for capture, inbox/status, inspection, acknowledgement, claim,
+preparation, renewal and release. Capture requires explicit local opt-in and
+intersecting admin/local path permissions. Preparation reconstructs into an
+isolated directory using local Git objects and stored snapshot bytes; it never
+runs the recovered work or bypasses normal checks/approval. Unsaved changes
+since the last successful checkpoint remain unrecoverable.
+
+See [M8 configuration, tools and recovery contract](docs/memory-project-continuity.md).
+Schema `010` refuses downgrade once continuity history exists; take a backup
+before migration. No real project is enabled automatically.
+
 ### Project experience workflow
 
-Run `alembic upgrade head` to apply revision `008` before starting this version.
+Run `python -m alembic upgrade head` to apply revision `013` before starting this version.
 The existing nine handoff/registry tools retain their contracts. Eight experience
-plus four generation/summary, eight Skill and fourteen team-asset tools extend the catalog to 43 tools.
+plus four generation/summary, eight Skill, fourteen team-asset and three
+collaboration tools, plus seventeen continuity, two read-only dashboard and eight
+presence tools, seven usage tools and two change-feed tools extend the catalog to 82 tools.
+
+The M9-1 [collaboration read model](docs/memory-collaboration-read-model.md) adds
+scoped overview/list queries and a bounded Core client without modifying leases,
+deliveries or local State. [Presence APIs and the opt-in Core worker observer](docs/memory-presence-runtime.md)
+now provide scoped session/idle metadata and bounded readers. Core also provides
+an optional `isekai watch` TUI with connection profiles and read-only default views.
+Explicit --manage adds server-authorized policy/recovery/reassignment/erasure/audit
+forms. [Usage ledger, opt-in Core collection and TUI](docs/memory-usage-runtime.md)
+now separate reported/estimated/missing counts, with scoped periods and admin soft
+alerts. Codex 0.154.0 parsing is synthetic-fixture validated; unknown versions and
+Claude/Kiro are explicitly unsupported, never zero. Controller/user-action and
+durable-event integration are also implemented and tested with synthetic data;
+no real account or project was activated. Cost, billing and budget features are out of scope.
 
 M6 sharing, pushed Wiki knowledge, offline native Skill import and explicit
 feedback are documented in [Team asset contracts](docs/memory-team-assets.md).
@@ -409,7 +515,7 @@ python3.11 tests/stdio_e2e_smoke.py
 The experience integration tests exercise real PostgreSQL persistence and the
 authenticated HTTP MCP/REST handlers, including concurrent writes, review receipts,
 classification/expiry filters and Korean recall. They use unique project IDs and
-require an explicitly configured, disposable database already migrated to `008`:
+require an explicitly configured, disposable database already migrated to `010`:
 
 ```bash
 MEMORY_TEST_DATABASE_URL='postgresql://test:test@localhost:5432/memory_test' \
@@ -468,3 +574,11 @@ forgotten team history. The real E2E runner covers two-project grants, uncached
 revocation, Wiki deletion, feedback and export → quarantined import → erasure.
 
 See [`docs/design.md`](docs/design.md) for contracts and trust boundaries.
+
+## M9 collaboration console
+
+See [M9 acceptance and operating boundary](docs/memory-m9-acceptance.md),
+[user work/lease console](docs/memory-user-work-console.md), and
+[durable change feed](docs/memory-collaboration-events.md).
+The current Memory schema is 013 with 82 MCP tools. Core provides the optional
+user/admin TUI; token monitoring is not billing or budget management.

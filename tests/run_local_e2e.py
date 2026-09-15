@@ -37,9 +37,14 @@ async def tokens(settings: Settings, project: str) -> tuple[dict, list[str]]:
             ("MEMORY_ADMIN_TOKEN", project, ["admin"]),
             ("MEMORY_READ_TOKEN", project, ["read"]),
             ("MEMORY_CROSS_PROJECT_TOKEN", project + "-other", ["read", "write"]),
+            ("MEMORY_COLLABORATOR_TOKEN", project, ["read", "write"]),
+            ("MEMORY_RECIPIENT_TOKEN", project, ["read", "write"]),
+            ("MEMORY_RECIPIENT_THREE_TOKEN", project, ["read", "write"]),
         ]:
             raw = secrets.token_urlsafe(32)
-            row = await queries.create_token(token_hash=hash_token(raw), project_id=target, user_id="e2e-user", scopes=scopes, expires_at=None)
+            actor = {"MEMORY_COLLABORATOR_TOKEN": "collaborator", "MEMORY_RECIPIENT_TOKEN": "recipient-two",
+                     "MEMORY_RECIPIENT_THREE_TOKEN": "recipient-three"}.get(key, "e2e-user")
+            row = await queries.create_token(token_hash=hash_token(raw), project_id=target, user_id=actor, scopes=scopes, expires_at=None)
             environment[key] = raw
             token_ids.append(str(row["id"]))
     finally:
@@ -83,16 +88,45 @@ def main() -> None:
                 while time.monotonic() < deadline and process.poll() is None:
                     try:
                         with urllib.request.urlopen(environment["MEMORY_BASE_URL"] + "/ready", timeout=1) as response:
-                            if json.load(response).get("schema_revision") == "008":
+                            if json.load(response).get("schema_revision") == "013":
                                 break
                     except (OSError, urllib.error.URLError):
                         time.sleep(0.05)
                 else:
                     raise RuntimeError("Test HTTP server did not become ready")
-                for script in ("e2e_smoke.py", "stdio_e2e_smoke.py", "generation_e2e_smoke.py", "skills_e2e_smoke.py", "team_e2e_smoke.py"):
+                for script in ("e2e_smoke.py", "stdio_e2e_smoke.py", "generation_e2e_smoke.py", "skills_e2e_smoke.py", "team_e2e_smoke.py", "collaboration_e2e_smoke.py", "continuation_e2e_smoke.py"):
                     subprocess.run([sys.executable, str(root / "tests" / script)], cwd=root, env=environment, check=True, timeout=45)
                 if os.environ.get("MEMORY_CORE_PYTHON") and os.environ.get("MEMORY_CORE_SOURCE"):
                     subprocess.run([os.environ["MEMORY_CORE_PYTHON"], str(root / "tests" / "core_recall_e2e_smoke.py")], cwd=root, env=environment, check=True, timeout=45)
+                    subprocess.run([sys.executable, str(root / "tests" / "core_continuity_e2e_smoke.py")], cwd=root, env=environment, check=True, timeout=90)
+                    subprocess.run([os.environ["MEMORY_CORE_PYTHON"], str(root / "tests" / "core_overview_e2e_smoke.py")], cwd=root, env=environment, check=True, timeout=45)
+                    subprocess.run([os.environ["MEMORY_CORE_PYTHON"], str(root / "tests" / "core_presence_e2e_smoke.py")], cwd=root, env=environment, check=True, timeout=45)
+                    if os.environ.get("MEMORY_CORE_CONSOLE_TESTS") == "1":
+                        subprocess.run([os.environ["MEMORY_CORE_PYTHON"], str(root / "tests" / "core_console_e2e_smoke.py")], cwd=root, env=environment, check=True, timeout=90)
+                        subprocess.run([os.environ["MEMORY_CORE_PYTHON"], str(root / "tests" / "core_admin_policy_e2e_smoke.py")], cwd=root, env=environment, check=True, timeout=90)
+                        subprocess.run([os.environ["MEMORY_CORE_PYTHON"], str(root / "tests" / "core_admin_actions_e2e_smoke.py")], cwd=root, env=environment, check=True, timeout=90)
+                        subprocess.run([os.environ["MEMORY_CORE_PYTHON"], str(root / "tests" / "core_usage_e2e_smoke.py")], cwd=root, env=environment, check=True, timeout=90)
+                        subprocess.run([os.environ["MEMORY_CORE_PYTHON"], str(root / "tests" / "core_experience_e2e_smoke.py")], cwd=root, env=environment, check=True, timeout=90)
+                        subprocess.run([os.environ["MEMORY_CORE_PYTHON"], str(root / "tests" / "core_work_e2e_smoke.py")], cwd=root, env=environment, check=True, timeout=90)
+                        with tempfile.TemporaryDirectory(prefix="isekai-events-restart-") as resume:
+                            event_test = root / "tests" / "core_events_e2e_smoke.py"
+                            subprocess.run([os.environ["MEMORY_CORE_PYTHON"], str(event_test), "before", resume], cwd=root, env=environment, check=True, timeout=45)
+                            process.terminate()
+                            process.wait(timeout=5)
+                            process = subprocess.Popen(
+                                [sys.executable, "-m", "isekai_memory.main", "--mode", "http", "--host", "127.0.0.1", "--port", str(port)],
+                                cwd=root, env=environment, stdout=server_log, stderr=server_log)
+                            restart_deadline = time.monotonic() + 15
+                            while time.monotonic() < restart_deadline and process.poll() is None:
+                                try:
+                                    with urllib.request.urlopen(environment["MEMORY_BASE_URL"] + "/ready", timeout=1) as response:
+                                        if json.load(response).get("schema_revision") == "013":
+                                            break
+                                except (OSError, urllib.error.URLError):
+                                    time.sleep(0.05)
+                            else:
+                                raise RuntimeError("Restarted synthetic HTTP server did not become ready")
+                            subprocess.run([os.environ["MEMORY_CORE_PYTHON"], str(event_test), "after", resume], cwd=root, env=environment, check=True, timeout=45)
             finally:
                 process.terminate()
                 try:

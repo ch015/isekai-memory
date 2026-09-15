@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from isekai_memory.config import Settings
+from isekai_memory.handoff import continuation
 from isekai_memory.handoff.validation import validate_envelopes
 from isekai_memory.server.errors import MemoryToolError
 from isekai_memory.store import queries
@@ -35,6 +36,15 @@ async def push_handoff(
     """Validate and register a completed phase result as an immutable handoff."""
     settings = settings or Settings()
     validate_envelopes(arguments)
+    recipient = arguments.get("recipient_user_id")
+    package = arguments.get("continuation")
+    if recipient is not None:
+        from jsonschema import Draft202012Validator
+
+        if not Draft202012Validator(continuation.RECIPIENT).is_valid(recipient):
+            raise continuation.invalid("Invalid recipient identity")
+    continuation_digest = continuation.validate(package) if package is not None else None
+    handoff_version = 2 if recipient is not None or package is not None else 1
     computed_envelope = _compute_envelope_digest(arguments["task_envelope"], arguments["result_envelope"])
     if computed_envelope != arguments["envelope_digest"]:
         raise MemoryToolError(
@@ -67,6 +77,9 @@ async def push_handoff(
         "lock_snapshot_digest": arguments["lock_snapshot_digest"],
         "envelope_digest": arguments["envelope_digest"],
     }
+    if handoff_version == 2:
+        payload_material.update(handoff_version=2, recipient_user_id=recipient,
+                                continuation=package, continuation_digest=continuation_digest)
     payload_digest = _digest(payload_material)
     expires_at = datetime.now(UTC) + timedelta(hours=settings.handoff_default_expiry_hours)
     row = await queries.insert_handoff(
@@ -89,6 +102,10 @@ async def push_handoff(
         envelope_digest=arguments["envelope_digest"],
         payload_digest=payload_digest,
         expires_at=expires_at,
+        handoff_version=handoff_version,
+        recipient_user_id=recipient,
+        continuation=package,
+        continuation_digest=continuation_digest,
     )
     if row is None:
         existing = await queries.get_handoff_by_attempt(
@@ -107,12 +124,16 @@ async def push_handoff(
             "created_at": existing["created_at"].isoformat(),
             "expires_at": existing["expires_at"].isoformat(),
             "already_exists": True,
+            **({"handoff_version": 2, "recipient_user_id": recipient,
+                "continuation_digest": continuation_digest} if handoff_version == 2 else {}),
         }
     return {
         "handoff_id": str(row["id"]),
         "created_at": row["created_at"].isoformat(),
         "expires_at": row["expires_at"].isoformat(),
         "already_exists": False,
+        **({"handoff_version": 2, "recipient_user_id": recipient,
+            "continuation_digest": continuation_digest} if handoff_version == 2 else {}),
     }
 
 
@@ -184,6 +205,7 @@ def _claim_token_digest(claim_token: str) -> str:
 
 def _recoverable_handoff_result(row: dict[str, Any]) -> dict[str, Any]:
     return {
+        **continuation.delivery_fields(row),
         "handoff_id": str(row["id"]),
         "project_id": row["project_id"],
         "unit_id": row["unit_id"],
@@ -239,6 +261,7 @@ async def claim_handoff_recoverable(
         claimed_by=claimed_by,
         claim_token_digest=_claim_token_digest(arguments["claim_token"]),
         lease_seconds=lease_seconds,
+        accept_handoff_version=arguments.get("accept_handoff_version", 1),
     )
     if row is None:
         raise MemoryToolError(
