@@ -1,5 +1,8 @@
 # M9 협업 TUI 구현 준비서
 
+후속 [전체 프로젝트 연결 목록·전환](memory-multi-project-console.md) 적용 후에는
+기본 watch가 전역 목록이며, 기존 단일 프로젝트 진입은 --project를 명시한다.
+
 상태: **M9 로컬 구현·합성 검증 완료**. 완료 기록: 2026-09-15.
 [완료 검증표](memory-m9-acceptance.md), [사용자 작업](memory-user-work-console.md),
 [변경 알림](memory-collaboration-events.md), [컨트롤러 관측](memory-controller-runtime.md),

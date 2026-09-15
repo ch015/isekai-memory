@@ -102,6 +102,7 @@ def main() -> None:
                     subprocess.run([os.environ["MEMORY_CORE_PYTHON"], str(root / "tests" / "core_overview_e2e_smoke.py")], cwd=root, env=environment, check=True, timeout=45)
                     subprocess.run([os.environ["MEMORY_CORE_PYTHON"], str(root / "tests" / "core_presence_e2e_smoke.py")], cwd=root, env=environment, check=True, timeout=45)
                     if os.environ.get("MEMORY_CORE_CONSOLE_TESTS") == "1":
+                        subprocess.run([os.environ["MEMORY_CORE_PYTHON"], str(root / "tests" / "core_projects_e2e_smoke.py")], cwd=root, env=environment, check=True, timeout=90)
                         subprocess.run([os.environ["MEMORY_CORE_PYTHON"], str(root / "tests" / "core_console_e2e_smoke.py")], cwd=root, env=environment, check=True, timeout=90)
                         subprocess.run([os.environ["MEMORY_CORE_PYTHON"], str(root / "tests" / "core_admin_policy_e2e_smoke.py")], cwd=root, env=environment, check=True, timeout=90)
                         subprocess.run([os.environ["MEMORY_CORE_PYTHON"], str(root / "tests" / "core_admin_actions_e2e_smoke.py")], cwd=root, env=environment, check=True, timeout=90)

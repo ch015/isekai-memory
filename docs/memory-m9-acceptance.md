@@ -57,14 +57,17 @@ HTTP 자식 프로세스는 종료하고 합성 토큰은 회수했다. 기존 �
 
 ## 사용 시작
 
+후속 [전체 프로젝트 콘솔](memory-multi-project-console.md)에서는 기본 watch가 전역 목록이다.
+아래 기존 단일 프로젝트 사용법은 --project를 명시한다. 위 완료 검증 수치는 당시 기록이다.
+
 Core에서 선택 의존성을 설치한 뒤 기존 Memory 연결이 있는 프로젝트에서:
 
 ```sh
 python -m pip install -e '.[console]'
-isekai watch                     # 기본 관찰
-isekai watch --work              # 내 작업; 별도 continuity opt-in 필요
-isekai watch --manage            # 기존 서버 관리자 권한 필요
-isekai watch --work --manage     # 같은 TUI에서 두 모드
+isekai --project . watch                     # 기본 관찰
+isekai --project . watch --work              # 내 작업; 별도 continuity opt-in 필요
+isekai --project . watch --manage            # 기존 서버 관리자 권한 필요
+isekai --project . watch --work --manage     # 같은 TUI에서 두 모드
 ```
 
 - 내 인수함/작업 → w → 확인/claim/격리 준비 → 기존 Core 실행·승인 → 완료/반납.

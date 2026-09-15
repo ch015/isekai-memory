@@ -38,6 +38,22 @@ for local validation, supported telemetry and explicit operational exclusions.
 
 ## Requirements
 
+For local Docker deployment, Python/PostgreSQL do not need to be installed on the host:
+
+```bash
+docker compose up -d
+# Or: ./scripts/local.sh up
+```
+
+This starts PostgreSQL, applies migrations, then serves Memory at
+`http://127.0.0.1:8100/mcp`. Database data survives `./scripts/local.sh down`.
+Port 8100 binds to all IPv4 interfaces: another LAN PC can use `http://<server-LAN-IP>:8100/mcp`.
+Restrict host firewall access to trusted LAN clients; token authentication is still required.
+Existing token authentication remains enabled; issue keys explicitly with
+`./scripts/local.sh token <project-id> <user-id> [read,write|admin]`.
+See [local Docker operations](docs/local-docker.md) for ports, credentials, logs and TUI connection.
+AWS deployment is intentionally separate. The requirements below apply to a host-based installation.
+
 - Python 3.11+
 - PostgreSQL 15+ (validation uses PostgreSQL 16)
 
@@ -576,6 +592,10 @@ revocation, Wiki deletion, feedback and export → quarantined import → erasur
 See [`docs/design.md`](docs/design.md) for contracts and trust boundaries.
 
 ## M9 collaboration console
+
+The follow-up [multi-project console](docs/memory-multi-project-console.md) makes
+`isekai watch` a global connection directory with project switching. Nunchi login
+and new RBAC remain separate; existing project-token authorization is unchanged.
 
 See [M9 acceptance and operating boundary](docs/memory-m9-acceptance.md),
 [user work/lease console](docs/memory-user-work-console.md), and
