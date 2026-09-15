@@ -1,0 +1,517 @@
+{
+  "dataset": "isekai-retrieval-v1",
+  "dataset_digest": "sha256:4537b9a9202b3ab92d77e353ff4f40e90b9e3ae32315dd02d313f80a09affcf1",
+  "judgments": "Agent-curated synthetic graded relevance, not independent human or production evaluation. 3=direct answer, 1=related context. Includes intentional paraphrase misses.",
+  "documents": 26,
+  "queries": 22,
+  "k": 3,
+  "repeats": 3,
+  "strategies": {
+    "postgres_lexical": {
+      "recall_at_k": 0.85,
+      "ndcg_at_k": 0.7774524353492164,
+      "mrr": 0.85,
+      "empty_correct": 1,
+      "p95_ms": 2.9770841356366873,
+      "max_result_chars": 2979,
+      "forbidden_hits": 0,
+      "cases": [
+        {
+          "id": "en-exact",
+          "language": "en",
+          "ranked": [
+            "lease-log",
+            "lease"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 0.7098097413968655,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "ko-exact",
+          "language": "ko",
+          "ranked": [
+            "ko-log",
+            "ko-retry"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 0.7098097413968655,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "en-fencing",
+          "language": "en",
+          "ranked": [
+            "fencing"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "en-scope",
+          "language": "en",
+          "ranked": [
+            "idempotency"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "en-retention",
+          "language": "en",
+          "ranked": [
+            "retention"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "en-credential",
+          "language": "en",
+          "ranked": [
+            "credential"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "en-cache",
+          "language": "en",
+          "ranked": [
+            "cache"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "en-migration",
+          "language": "en",
+          "ranked": [
+            "migration"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "ko-lock",
+          "language": "ko",
+          "ranked": [
+            "ko-lock"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "ko-forget",
+          "language": "ko",
+          "ranked": [
+            "ko-forget"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "ko-cursor",
+          "language": "ko",
+          "ranked": [
+            "ko-cursor"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "ko-authority",
+          "language": "ko",
+          "ranked": [
+            "ko-memory"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "en-tag",
+          "language": "en",
+          "ranked": [
+            "lease-log",
+            "lease",
+            "migration"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 0.7098097413968655,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "ko-spacing",
+          "language": "ko",
+          "ranked": [
+            "ko-log",
+            "ko-retry"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 0.7098097413968655,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "unicode-width",
+          "language": "en",
+          "ranked": [
+            "lease-log",
+            "lease"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 0.7098097413968655,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "kind-filter",
+          "language": "en",
+          "ranked": [
+            "lease"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "restricted-opt-in",
+          "language": "en",
+          "ranked": [
+            "restricted"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "empty-en",
+          "language": "en",
+          "ranked": [],
+          "recall_at_k": null,
+          "ndcg_at_k": null,
+          "mrr": null,
+          "empty_correct": true
+        },
+        {
+          "id": "empty-ko",
+          "language": "ko",
+          "ranked": [],
+          "recall_at_k": null,
+          "ndcg_at_k": null,
+          "mrr": null,
+          "empty_correct": true
+        },
+        {
+          "id": "paraphrase-en",
+          "language": "en",
+          "ranked": [],
+          "recall_at_k": 0,
+          "ndcg_at_k": 0,
+          "mrr": 0,
+          "empty_correct": null
+        },
+        {
+          "id": "paraphrase-ko",
+          "language": "ko",
+          "ranked": [],
+          "recall_at_k": 0,
+          "ndcg_at_k": 0,
+          "mrr": 0,
+          "empty_correct": null
+        },
+        {
+          "id": "cross-language",
+          "language": "ko",
+          "ranked": [],
+          "recall_at_k": 0,
+          "ndcg_at_k": 0,
+          "mrr": 0,
+          "empty_correct": null
+        }
+      ]
+    },
+    "postgres_weighted_lexical": {
+      "recall_at_k": 0.85,
+      "ndcg_at_k": 0.85,
+      "mrr": 0.85,
+      "empty_correct": 1,
+      "p95_ms": 2.4500000290572643,
+      "max_result_chars": 2964,
+      "forbidden_hits": 0,
+      "cases": [
+        {
+          "id": "en-exact",
+          "language": "en",
+          "ranked": [
+            "lease",
+            "lease-log"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "ko-exact",
+          "language": "ko",
+          "ranked": [
+            "ko-retry",
+            "ko-log"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "en-fencing",
+          "language": "en",
+          "ranked": [
+            "fencing"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "en-scope",
+          "language": "en",
+          "ranked": [
+            "idempotency"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "en-retention",
+          "language": "en",
+          "ranked": [
+            "retention"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "en-credential",
+          "language": "en",
+          "ranked": [
+            "credential"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "en-cache",
+          "language": "en",
+          "ranked": [
+            "cache"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "en-migration",
+          "language": "en",
+          "ranked": [
+            "migration"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "ko-lock",
+          "language": "ko",
+          "ranked": [
+            "ko-lock"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "ko-forget",
+          "language": "ko",
+          "ranked": [
+            "ko-forget"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "ko-cursor",
+          "language": "ko",
+          "ranked": [
+            "ko-cursor"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "ko-authority",
+          "language": "ko",
+          "ranked": [
+            "ko-memory"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "en-tag",
+          "language": "en",
+          "ranked": [
+            "lease",
+            "lease-log",
+            "migration"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "ko-spacing",
+          "language": "ko",
+          "ranked": [
+            "ko-retry",
+            "ko-log"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "unicode-width",
+          "language": "en",
+          "ranked": [
+            "lease",
+            "lease-log"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "kind-filter",
+          "language": "en",
+          "ranked": [
+            "lease"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "restricted-opt-in",
+          "language": "en",
+          "ranked": [
+            "restricted"
+          ],
+          "recall_at_k": 1,
+          "ndcg_at_k": 1,
+          "mrr": 1,
+          "empty_correct": null
+        },
+        {
+          "id": "empty-en",
+          "language": "en",
+          "ranked": [],
+          "recall_at_k": null,
+          "ndcg_at_k": null,
+          "mrr": null,
+          "empty_correct": true
+        },
+        {
+          "id": "empty-ko",
+          "language": "ko",
+          "ranked": [],
+          "recall_at_k": null,
+          "ndcg_at_k": null,
+          "mrr": null,
+          "empty_correct": true
+        },
+        {
+          "id": "paraphrase-en",
+          "language": "en",
+          "ranked": [],
+          "recall_at_k": 0,
+          "ndcg_at_k": 0,
+          "mrr": 0,
+          "empty_correct": null
+        },
+        {
+          "id": "paraphrase-ko",
+          "language": "ko",
+          "ranked": [],
+          "recall_at_k": 0,
+          "ndcg_at_k": 0,
+          "mrr": 0,
+          "empty_correct": null
+        },
+        {
+          "id": "cross-language",
+          "language": "ko",
+          "ranked": [],
+          "recall_at_k": 0,
+          "ndcg_at_k": 0,
+          "mrr": 0,
+          "empty_correct": null
+        }
+      ]
+    }
+  },
+  "handoff_unchanged": true,
+  "environment": {
+    "python": "3.14",
+    "postgres": "16",
+    "transport": "in-process service to loopback disposable PostgreSQL",
+    "concurrency": 1,
+    "note": "Small synthetic fixture; latency is not a production capacity claim."
+  }
+}
