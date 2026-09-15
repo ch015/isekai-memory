@@ -1,9 +1,13 @@
-.git
-__pycache__
-*.pyc
-.venv
-.env
-tests
-docs
-k8s
-.dockerignore
+# Allow only explicit package/build inputs; never send local reports, State or credentials.
+**
+!Dockerfile
+!.dockerignore
+!pyproject.toml
+!README.md
+!alembic.ini
+!src/
+!src/**
+!migrations/
+!migrations/**
+**/__pycache__/
+**/*.py[cod]

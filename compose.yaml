@@ -1,0 +1,89 @@
+# Local development only. AWS / shared-host deployment needs a separate configuration.
+name: isekai-memory-local
+
+x-memory-image: &memory-image "${COMPOSE_PROJECT_NAME:-isekai-memory-local}-server:local"
+x-database-client: &database-client
+  ISEKAI_MEMORY_DATABASE_URL: postgresql://isekai@db:5432/isekai_memory
+  # Both asyncpg and psycopg use PGPASSWORD; special characters stay out of the URL.
+  PGPASSWORD: "${ISEKAI_LOCAL_DB_PASSWORD:-isekai-local-only}"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: isekai
+      POSTGRES_DB: isekai_memory
+      POSTGRES_PASSWORD: "${ISEKAI_LOCAL_DB_PASSWORD:-isekai-local-only}"
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    # No host database port. Use docker compose exec db psql when needed.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 3s
+      timeout: 3s
+      start_period: 10s
+      retries: 20
+    stop_grace_period: 30s
+
+  migrate:
+    image: *memory-image
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # A single build owner; memory below uses exactly this image.
+    pull_policy: build
+    entrypoint: ["alembic"]
+    command: ["upgrade", "head"]
+    environment: *database-client
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    healthcheck:
+      disable: true
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  memory:
+    image: *memory-image
+    pull_policy: never
+    command: ["--mode", "http", "--host", "0.0.0.0", "--port", "8100"]
+    environment:
+      <<: *database-client
+      ISEKAI_MEMORY_AUTH_ENABLED: "true"
+      ISEKAI_MEMORY_GENERATION_ENABLED: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+      migrate:
+        condition: service_completed_successfully
+        restart: true
+    ports:
+      - "0.0.0.0:${ISEKAI_LOCAL_PORT:-8100}:8100"
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8100/ready', timeout=4)"]
+      interval: 5s
+      timeout: 5s
+      start_period: 10s
+      retries: 12
+    stop_grace_period: 20s
+
+volumes:
+  postgres-data:
