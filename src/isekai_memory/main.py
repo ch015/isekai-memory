@@ -43,7 +43,12 @@ class ToolDispatcher:
         from isekai_memory.team import exchange, feedback, grants, knowledge
 
         validate_tool_arguments(tool_name, arguments)
+        from isekai_memory.projects.service import HANDLERS as project_handlers
+        from isekai_memory.projects.service import bind
+        principal = await bind(principal, tool_name, arguments)
         authorize_tool(principal, tool_name, arguments)
+        if tool_name in project_handlers:
+            return await project_handlers[tool_name](arguments, principal)
 
         from isekai_memory.continuity.service import dispatch as dispatch_continuity
         from isekai_memory.continuity.tools import CONTINUITY_SCOPES
@@ -193,7 +198,7 @@ async def issue_token(settings: Settings, args: argparse.Namespace) -> None:
     from isekai_memory.store.database import close_pool, init_pool
 
     scopes = [item.strip() for item in args.scopes.split(",") if item.strip()]
-    invalid = sorted(set(scopes) - {"read", "write", "admin"})
+    invalid = sorted(set(scopes) - {"read", "write", "admin", "projects"})
     if not scopes or invalid:
         raise SystemExit(f"Invalid scopes: {invalid or scopes}")
     raw_token = secrets.token_urlsafe(32)

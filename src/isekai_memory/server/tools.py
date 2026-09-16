@@ -17,6 +17,7 @@ from isekai_memory.generation.tools import GENERATION_TOOLS
 from isekai_memory.handoff.continuation import RECIPIENT
 from isekai_memory.handoff.continuation import SCHEMA as CONTINUATION_SCHEMA
 from isekai_memory.handoff.tools import COLLABORATION_TOOLS
+from isekai_memory.projects.tools import PROJECT_TOOLS
 from isekai_memory.skills.tools import SKILL_TOOLS
 from isekai_memory.team.tools import TEAM_TOOLS
 
@@ -213,6 +214,7 @@ TOOLS.extend(SKILL_TOOLS)
 TOOLS.extend(TEAM_TOOLS)
 TOOLS.extend(COLLABORATION_TOOLS)
 TOOLS.extend(CONTINUITY_TOOLS)
+TOOLS.extend(PROJECT_TOOLS)
 
 TOOL_MAP = {tool["name"]: tool for tool in TOOLS}
 TOOL_NAMES = set(TOOL_MAP)
