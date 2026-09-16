@@ -22,7 +22,10 @@ pushed to both Core remotes on `master`, excluding the pre-existing state DB.
 | M7 | complete (local baseline) | [Collaboration contract](memory-collaboration.md): multi-user delivery inbox/status and fenced lease renewal; automatic delivery and Core continuation remain follow-up work |
 | M8 | complete (local implementation and validation) | [Project continuity](memory-project-continuity.md): admin-managed 1:N policy, independent deliveries, fenced work/reassignment, stored checkpoints and opt-in Core capture/local-MCP preparation. Deployment and project activation remain explicit; no automatic execution |
 | M9 | complete (local implementation and synthetic validation) | [Acceptance](memory-m9-acceptance.md): user/admin TUI, controller/worker observation, token monitoring, user work/lease and durable events; no deployment or real subscription execution |
-| M10 | planned | Broader team/membership operations and operational automation; external connectors deferred |
+| M10 | planned — scope refined 2026-09-15 | [Shared-key central projects/activity plan](memory-m10-shared-workspace-plan.md): one server key, host/workspace registration, server-driven watch and activity; login/Nunchi/RBAC and external connectors deferred |
+
+Latest continuation notes: [2026-09-15 handoff](handoff-2026-09-15.md).
+M10 is not implemented; earlier M9 acceptance remains a historical baseline.
 
 ## M9 final acceptance — 2026-09-14
 
