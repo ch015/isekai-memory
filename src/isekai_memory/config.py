@@ -10,6 +10,8 @@ from typing import Any, Literal
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from isekai_memory.server.entra_config import EntraSettings
+
 
 class ServerMode(StrEnum):
     http = "http"
@@ -46,6 +48,7 @@ class Settings(BaseSettings):
     # Deprecated: stdio uses the local process boundary rather than a non-standard
     # initialize parameter. Kept temporarily so old config files still load.
     auth_static_token: str | None = None
+    entra: EntraSettings = Field(default_factory=EntraSettings)
 
     handoff_default_expiry_hours: int = Field(default=168, ge=1, le=8760)
     handoff_max_raw_output_bytes: int = Field(default=1024 * 1024, ge=0)
@@ -68,6 +71,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_bounds(self) -> Settings:
+        if self.entra.enabled and not self.auth_enabled:
+            raise ValueError("Entra authentication requires auth_enabled=true")
         if self.generation_lease_seconds <= self.generation_timeout_seconds + 5:
             raise ValueError("generation lease must exceed timeout by more than five seconds")
         if self.db_pool_max < self.db_pool_min:
@@ -126,6 +131,8 @@ def _flatten_config(data: dict[str, Any]) -> dict[str, Any]:
     }
     flat = _flatten_dict(data)
     result = {setting_key: flat[json_key] for json_key, setting_key in mapping.items() if json_key in flat}
+    if isinstance(data.get("auth"), dict) and "entra" in data["auth"]:
+        result["entra"] = data["auth"]["entra"]
     for key, value in data.items():
         if key in Settings.model_fields and key not in result:
             result[key] = value

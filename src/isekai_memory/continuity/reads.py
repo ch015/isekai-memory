@@ -76,10 +76,8 @@ async def members(arguments, *, principal):
     async with transaction(arguments["project_id"]) as conn:
         rows = await conn.fetch("""
             SELECT * FROM (
-                SELECT user_id, md5(user_id)::uuid AS id, min(created_at) AS created_at
-                FROM access_tokens WHERE project_id=$1 AND revoked_at IS NULL
-                    AND (expires_at IS NULL OR expires_at>clock_timestamp())
-                    AND ('admin'=ANY(scopes) OR ('read'=ANY(scopes) AND 'write'=ANY(scopes))) GROUP BY user_id
+                SELECT user_id, md5(user_id)::uuid AS id, created_at
+                FROM memory_eligible_members WHERE project_id=$1
             ) identities WHERE $2::timestamptz IS NULL OR (created_at,id)<($2,$3::uuid)
             ORDER BY created_at DESC,id DESC LIMIT $4
         """, arguments["project_id"], at, row_id, limit + 1)

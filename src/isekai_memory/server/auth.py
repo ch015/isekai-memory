@@ -21,6 +21,8 @@ class Principal:
     project_id: str | None
     scopes: frozenset[str]
     local: bool = False
+    provider: str = "token"
+    organization_id: str | None = None
 
     @classmethod
     def local_stdio(cls) -> Principal:

@@ -254,6 +254,10 @@ def cli(argv: list[str] | None = None) -> None:
     admin.add_argument("--issue-token", action="store_true", help="Issue one project-scoped token and print it once")
     admin.add_argument("--revoke-token", metavar="TOKEN_ID", help="Revoke a token by UUID")
     admin.add_argument("--run-generation", action="store_true", help="Run a finite batch of offline generation jobs")
+    admin.add_argument("--bind-entra-user", metavar="OBJECT_ID", help="Bind a verified Entra object to --user-id before its first login")
+    admin.add_argument("--disable-entra-user", metavar="OBJECT_ID", help="Disable an existing company account locally")
+    admin.add_argument("--enable-entra-user", metavar="OBJECT_ID", help="Enable a previously disabled company account")
+    parser.add_argument("--tenant-id")
     parser.add_argument("--max-jobs", type=int, default=20)
     parser.add_argument("--project-id")
     parser.add_argument("--user-id")
@@ -261,6 +265,12 @@ def cli(argv: list[str] | None = None) -> None:
     parser.add_argument("--expires-hours", type=int, default=None)
     args = parser.parse_args(argv)
     settings = load_settings(args.config)
+    if args.bind_entra_user or args.disable_entra_user or args.enable_entra_user:
+        if not (args.tenant_id or settings.entra.tenant_id) or (args.bind_entra_user and not args.user_id):
+            parser.error("Identity administration requires tenant ID and binding requires --user-id")
+        from isekai_memory.server.identity_admin import administer
+        asyncio.run(administer(settings, args))
+        return
     if args.run_generation:
         if not args.project_id or not 1 <= args.max_jobs <= 100:
             parser.error("--run-generation requires --project-id and --max-jobs between 1 and 100")

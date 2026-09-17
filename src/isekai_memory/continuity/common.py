@@ -101,8 +101,6 @@ async def policy(conn, project, *, enabled=True):
 async def eligible(conn, project, users, *, sender=None):
     if sender is not None and sender in users:
         raise invalid("A handover user cannot be their own successor")
-    rows = await conn.fetch("SELECT DISTINCT user_id FROM access_tokens WHERE project_id=$1 AND user_id=ANY($2::text[]) "
-                            "AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>clock_timestamp()) "
-                            "AND ('admin'=ANY(scopes) OR ('read'=ANY(scopes) AND 'write'=ANY(scopes)))", project, list(users))
+    rows = await conn.fetch("SELECT user_id FROM memory_eligible_members WHERE project_id=$1 AND user_id=ANY($2::text[])", project, list(users))
     if {row["user_id"] for row in rows} != set(users):
         raise fail("All recipients must have live project read/write or admin authority", "MEM-CONTINUITY-0007", 409)

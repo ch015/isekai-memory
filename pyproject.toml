@@ -19,6 +19,7 @@ dependencies = [
     "psycopg[binary]>=3.2,<4",
     "jsonschema==4.25.1",
     "cryptography>=46,<51",
+    "PyJWT[crypto]>=2.10,<3",
 ]
 
 [project.scripts]

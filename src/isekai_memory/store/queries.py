@@ -142,10 +142,7 @@ async def insert_handoff(
             return None
         if recipient_user_id is not None:
             reachable = await conn.fetchval(
-                """SELECT EXISTS(SELECT 1 FROM access_tokens
-                   WHERE project_id=$1 AND user_id=$2 AND revoked_at IS NULL
-                     AND (expires_at IS NULL OR expires_at > clock_timestamp())
-                     AND ('admin'=ANY(scopes) OR ('read'=ANY(scopes) AND 'write'=ANY(scopes))))""",
+                """SELECT EXISTS(SELECT 1 FROM memory_eligible_members WHERE project_id=$1 AND user_id=$2)""",
                 project_id, recipient_user_id,
             )
             if not reachable:

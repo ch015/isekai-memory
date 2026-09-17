@@ -40,6 +40,8 @@ def create_app(settings: Settings, dispatch: Any) -> FastAPI:
         await close_pool()
 
     app = FastAPI(title="isekai-memory", version="0.2.0", lifespan=lifespan)
+    from isekai_memory.server.entra import EntraVerifier, denied
+    entra = EntraVerifier(settings.entra)
     mcp = McpProtocolHandler(dispatch)
     protocol_headers = {"MCP-Protocol-Version": PROTOCOL_VERSION}
 
@@ -68,7 +70,12 @@ def create_app(settings: Settings, dispatch: Any) -> FastAPI:
         raw_token = authorization[7:].strip() if authorization.lower().startswith("bearer ") else None
         raw_token = raw_token or request.headers.get(settings.auth_token_header)
         try:
-            request.state.principal = await verify_token(raw_token)
+            if settings.entra.enabled and raw_token and raw_token.count(".") == 2:
+                request.state.principal = await entra.verify(raw_token)
+            elif settings.entra.enabled and not settings.entra.allow_legacy_tokens:
+                raise denied()
+            else:
+                request.state.principal = await verify_token(raw_token)
         except MemoryToolError as error:
             return JSONResponse(
                 {
@@ -80,6 +87,12 @@ def create_app(settings: Settings, dispatch: Any) -> FastAPI:
                 status_code=error.http_status,
             )
         return await call_next(request)
+
+    @app.get("/auth/me")
+    async def identity(request: Request):
+        principal = request.state.principal
+        return JSONResponse({"user_id": principal.user_id, "provider": principal.provider,
+                             "organization_id": principal.organization_id}, headers={"Cache-Control": "no-store"})
 
     async def json_body(request: Request) -> Any:
         body = await request.body()

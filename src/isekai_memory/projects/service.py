@@ -42,6 +42,12 @@ async def bind(principal, tool_name, arguments):
     if not isinstance(project_id, str):
         return principal
     row, role = await access(project_id, principal.user_id)
+    if principal.provider == "entra":
+        organization = row["organization_id"] if row else arguments.get("organization_id")
+        if organization != principal.organization_id or (
+            tool_name == "memory_project_register" and arguments.get("organization_id") != principal.organization_id
+        ):
+            raise fail("Project organization does not match this company account")
     if row is None and tool_name == "memory_project_register" and arguments.get("expected_revision") == 0:
         role = "owner"
     if role is None:
@@ -55,6 +61,8 @@ async def bind(principal, tool_name, arguments):
     scopes = set(principal.scopes)
     if "admin" in scopes:
         scopes.update({"read", "write"})
+    if principal.provider == "entra" and role == "owner":
+        scopes.add("admin")  # project owner only; no global administrator scope
     return replace(principal, project_id=project_id, scopes=frozenset(scopes & allowed))
 
 
@@ -124,11 +132,13 @@ async def list_projects(args, principal):
             CASE WHEN p.owner_id=$1 THEN 'owner' ELSE m.role END AS role
             FROM memory_projects p LEFT JOIN memory_project_members m ON m.project_id=p.project_id AND m.user_id=$1
             WHERE (p.owner_id=$1 OR m.user_id IS NOT NULL) AND ($2::text IS NULL OR p.project_id=$2)
+            AND ($5::text IS NULL OR p.organization_id=$5)
             AND p.project_id>$3 ORDER BY p.project_id LIMIT $4""",
             principal.user_id,
             scope,
             args.get("after", ""),
             limit + 1,
+            principal.organization_id,
         )
     return jsonable_encoder(
         {
