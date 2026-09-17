@@ -21,7 +21,7 @@ async def directory():
     settings = Settings(database_url=os.environ["MEMORY_TEST_DATABASE_URL"], db_pool_min=1, db_pool_max=3)
     await init_pool(settings)
     try:
-        assert (await health_check())["schema_revision"] == "015"
+        assert (await health_check())["schema_revision"] == "016"
         yield ToolDispatcher(settings), "directory-" + uuid4().hex
     finally:
         await close_pool()

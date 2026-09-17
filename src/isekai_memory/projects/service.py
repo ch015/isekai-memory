@@ -42,7 +42,7 @@ async def bind(principal, tool_name, arguments):
     if not isinstance(project_id, str):
         return principal
     row, role = await access(project_id, principal.user_id)
-    if principal.provider == "entra":
+    if principal.provider in {"entra", "github"}:
         organization = row["organization_id"] if row else arguments.get("organization_id")
         if organization != principal.organization_id or (
             tool_name == "memory_project_register" and arguments.get("organization_id") != principal.organization_id
@@ -61,7 +61,7 @@ async def bind(principal, tool_name, arguments):
     scopes = set(principal.scopes)
     if "admin" in scopes:
         scopes.update({"read", "write"})
-    if principal.provider == "entra" and role == "owner":
+    if principal.provider in {"entra", "github"} and role == "owner":
         scopes.add("admin")  # project owner only; no global administrator scope
     return replace(principal, project_id=project_id, scopes=frozenset(scopes & allowed))
 

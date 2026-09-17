@@ -13,7 +13,8 @@ Artifact distribution has moved to Git Releases — Foundation and Preset archiv
 - Stored workspace checkpoints and opt-in Core capture/isolated preparation for unexpected departure
 - Repository registry for tracking Foundation/Preset release repositories (config-based, future UI administration planned)
 - Project-scoped tokens with `read`, `write`, and `admin` scopes
-- Optional single-tenant Entra OIDC API authentication, stable user bindings and project membership ([setup](docs/entra-oidc.md), schema 015; live-tenant acceptance pending)
+- Optional GitHub OAuth/PKCE login with a dedicated server-side OAuth app, immutable user allowlist and shared project roles ([setup](docs/github-login.md), current schema 016; live-app acceptance pending)
+- Optional single-tenant Entra OIDC API authentication, stable user bindings and project membership ([setup](docs/entra-oidc.md), introduced in schema 015; live-tenant acceptance pending)
 - MCP 2026-07-28 over stdio and stateless Streamable HTTP JSON-RPC at `POST /mcp`
 - PostgreSQL persistence and Alembic migrations
 - Source-backed project experience proposals, admin review, and bounded lexical search/read

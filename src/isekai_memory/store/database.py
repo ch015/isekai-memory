@@ -8,7 +8,7 @@ import asyncpg
 
 from isekai_memory.config import Settings
 
-EXPECTED_SCHEMA_REVISION = "015"
+EXPECTED_SCHEMA_REVISION = "016"
 _pool: asyncpg.Pool | None = None
 
 
@@ -73,6 +73,7 @@ async def health_check() -> dict[str, str]:
                 'public.access_tokens',
                 'public.memory_projects',
                 'public.memory_identities',
+                'public.memory_github_identities',
                 'public.memory_eligible_members',
                 'public.memory_project_members',
                 'public.memory_experiences',

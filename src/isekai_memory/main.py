@@ -257,6 +257,9 @@ def cli(argv: list[str] | None = None) -> None:
     admin.add_argument("--bind-entra-user", metavar="OBJECT_ID", help="Bind a verified Entra object to --user-id before its first login")
     admin.add_argument("--disable-entra-user", metavar="OBJECT_ID", help="Disable an existing company account locally")
     admin.add_argument("--enable-entra-user", metavar="OBJECT_ID", help="Enable a previously disabled company account")
+    admin.add_argument("--bind-github-user", metavar="NUMERIC_ID", help="Explicit pre-login binding to --user-id")
+    admin.add_argument("--disable-github-user", metavar="NUMERIC_ID", help="Disable a GitHub identity locally")
+    admin.add_argument("--enable-github-user", metavar="NUMERIC_ID", help="Enable a GitHub identity locally")
     parser.add_argument("--tenant-id")
     parser.add_argument("--max-jobs", type=int, default=20)
     parser.add_argument("--project-id")
@@ -265,6 +268,12 @@ def cli(argv: list[str] | None = None) -> None:
     parser.add_argument("--expires-hours", type=int, default=None)
     args = parser.parse_args(argv)
     settings = load_settings(args.config)
+    if args.bind_github_user or args.disable_github_user or args.enable_github_user:
+        if args.bind_github_user and not args.user_id:
+            parser.error("GitHub binding requires --user-id")
+        from isekai_memory.server.github_admin import administer
+        asyncio.run(administer(settings, args))
+        return
     if args.bind_entra_user or args.disable_entra_user or args.enable_entra_user:
         if not (args.tenant_id or settings.entra.tenant_id) or (args.bind_entra_user and not args.user_id):
             parser.error("Identity administration requires tenant ID and binding requires --user-id")

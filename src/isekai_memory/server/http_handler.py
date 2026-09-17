@@ -42,13 +42,17 @@ def create_app(settings: Settings, dispatch: Any) -> FastAPI:
     app = FastAPI(title="isekai-memory", version="0.2.0", lifespan=lifespan)
     from isekai_memory.server.entra import EntraVerifier, denied
     entra = EntraVerifier(settings.entra)
+    from isekai_memory.server.github import PREFIX, GitHubAuth
+    from isekai_memory.server.github_routes import PUBLIC, install
+    github = GitHubAuth(settings.github)
+    install(app, github)
     mcp = McpProtocolHandler(dispatch)
     protocol_headers = {"MCP-Protocol-Version": PROTOCOL_VERSION}
 
     @app.middleware("http")
     async def reference_cache_policy(request: Request, call_next):
         response = await call_next(request)
-        if request.url.path == "/mcp" or request.url.path.startswith("/tools"):
+        if request.url.path == "/mcp" or request.url.path.startswith(("/tools", "/auth/")):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Pragma"] = "no-cache"
         return response
@@ -63,6 +67,8 @@ def create_app(settings: Settings, dispatch: Any) -> FastAPI:
                 {"error": {"error_code": "MEM-HTTP-0001", "message": "Request body too large"}},
                 status_code=413,
             )
+        if (request.method, request.url.path) in PUBLIC:
+            return await call_next(request)
         if not settings.auth_enabled:
             request.state.principal = Principal.local_stdio()
             return await call_next(request)
@@ -70,9 +76,11 @@ def create_app(settings: Settings, dispatch: Any) -> FastAPI:
         raw_token = authorization[7:].strip() if authorization.lower().startswith("bearer ") else None
         raw_token = raw_token or request.headers.get(settings.auth_token_header)
         try:
-            if settings.entra.enabled and raw_token and raw_token.count(".") == 2:
+            if raw_token and raw_token.startswith(PREFIX):
+                request.state.principal = await github.verify(raw_token)
+            elif settings.entra.enabled and raw_token and raw_token.count(".") == 2:
                 request.state.principal = await entra.verify(raw_token)
-            elif settings.entra.enabled and not settings.entra.allow_legacy_tokens:
+            elif (settings.entra.enabled and not settings.entra.allow_legacy_tokens) or (settings.github.enabled and not settings.github.allow_legacy_tokens):
                 raise denied()
             else:
                 request.state.principal = await verify_token(raw_token)

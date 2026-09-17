@@ -11,6 +11,7 @@ from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from isekai_memory.server.entra_config import EntraSettings
+from isekai_memory.server.github_config import GitHubSettings
 
 
 class ServerMode(StrEnum):
@@ -28,6 +29,7 @@ class Settings(BaseSettings):
         env_prefix="ISEKAI_MEMORY_",
         env_nested_delimiter="__",
         case_sensitive=False,
+        hide_input_in_errors=True,
     )
 
     database_url: str = "postgresql://isekai:isekai@localhost:5432/isekai_memory"
@@ -49,6 +51,7 @@ class Settings(BaseSettings):
     # initialize parameter. Kept temporarily so old config files still load.
     auth_static_token: str | None = None
     entra: EntraSettings = Field(default_factory=EntraSettings)
+    github: GitHubSettings = Field(default_factory=GitHubSettings)
 
     handoff_default_expiry_hours: int = Field(default=168, ge=1, le=8760)
     handoff_max_raw_output_bytes: int = Field(default=1024 * 1024, ge=0)
@@ -71,6 +74,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_bounds(self) -> Settings:
+        if self.github.enabled and not self.auth_enabled:
+            raise ValueError("GitHub authentication requires auth_enabled=true")
         if self.entra.enabled and not self.auth_enabled:
             raise ValueError("Entra authentication requires auth_enabled=true")
         if self.generation_lease_seconds <= self.generation_timeout_seconds + 5:
@@ -133,6 +138,8 @@ def _flatten_config(data: dict[str, Any]) -> dict[str, Any]:
     result = {setting_key: flat[json_key] for json_key, setting_key in mapping.items() if json_key in flat}
     if isinstance(data.get("auth"), dict) and "entra" in data["auth"]:
         result["entra"] = data["auth"]["entra"]
+    if isinstance(data.get("auth"), dict) and "github" in data["auth"]:
+        result["github"] = data["auth"]["github"]
     for key, value in data.items():
         if key in Settings.model_fields and key not in result:
             result[key] = value
