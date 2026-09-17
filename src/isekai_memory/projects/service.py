@@ -66,8 +66,13 @@ async def bind(principal, tool_name, arguments):
     return replace(principal, project_id=project_id, scopes=frozenset(scopes & allowed))
 
 
-def validate_metadata(args):
-    url = args["git_url"]
+def validate_git(args):
+    url = args.get("git_url")
+    ref = args.get("git_ref")
+    if url is None and ref is None:
+        return
+    if not isinstance(url, str) or not url or not isinstance(ref, str) or not ref:
+        raise fail("Git URL and ref must be supplied together or both absent", "MEM-PROJECT-0002", 400)
     parsed = urlsplit(url)
     scp = re.fullmatch(r"[A-Za-z0-9_.-]+@[A-Za-z0-9.-]+:[A-Za-z0-9_./-]+", url)
     if not scp and (
@@ -79,13 +84,17 @@ def validate_metadata(args):
         or parsed.fragment
     ):
         raise fail("Git URL must be HTTPS or SSH without embedded secrets", "MEM-PROJECT-0002", 400)
-    ref = args["git_ref"]
+    ref = args.get("git_ref")
     if (
         ref.startswith("-")
         or any(c.isspace() or ord(c) < 32 for c in ref)
         or any(s in ref for s in ("..", "@{", "\\", "~", "^", ":", "?", "*", "["))
     ):
         raise fail("Git ref is invalid", "MEM-PROJECT-0002", 400)
+
+
+def validate_metadata(args):
+    validate_git(args)
     setup = args["setup"]
     if set(setup) != {"schema_version", "config", "artifacts", "digest"} or setup["schema_version"] != 1:
         raise fail("Unsupported setup manifest", "MEM-PROJECT-0002", 400)
@@ -158,6 +167,7 @@ async def get_project(args, principal):
 
 
 async def register(args, principal):
+    args = {"git_url": None, "git_ref": None, **args}
     validate_metadata(args)
     async with get_pool().acquire() as conn, conn.transaction():
         # Serialize create and update on the same project, including first registration.

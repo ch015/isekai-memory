@@ -21,7 +21,7 @@ async def directory():
     settings = Settings(database_url=os.environ["MEMORY_TEST_DATABASE_URL"], db_pool_min=1, db_pool_max=3)
     await init_pool(settings)
     try:
-        assert (await health_check())["schema_revision"] == "016"
+        assert (await health_check())["schema_revision"] == "017"
         yield ToolDispatcher(settings), "directory-" + uuid4().hex
     finally:
         await close_pool()
@@ -91,3 +91,22 @@ async def test_global_registration_cannot_claim_preexisting_memory_namespace(dir
     registered = await dispatch("memory_project_register", metadata(project), scoped_admin)
     assert registered["owner_id"] == scoped_admin.user_id
     assert (await dispatch("memory_project_list", {}, outsider))["items"] == []
+
+
+@pytest.mark.asyncio
+async def test_non_git_project_roundtrip_assignment_and_idempotency(directory):
+    dispatch, project = directory
+    owner = Principal("owner-" + project, "directory", frozenset({"read", "write", "projects"}))
+    member = Principal("member-" + project, "directory", frozenset({"read", "write", "projects"}))
+    args = metadata(project)
+    args.pop("git_url")
+    args.pop("git_ref")
+    registered = await dispatch("memory_project_register", args, owner)
+    assert registered["git_url"] is None and registered["git_ref"] is None
+    assert (await dispatch("memory_project_register", args, owner))["revision"] == 1
+    await dispatch("memory_project_assign", {"project_id": project, "user_id": member.user_id, "role": "write", "expected_revision": 1}, owner)
+    listed = await dispatch("memory_project_list", {}, member)
+    assert listed["items"][0]["project_id"] == project
+    read = await dispatch("memory_project_get", {"project_id": project}, member)
+    assert read["setup"] == args["setup"]
+    assert read["revision"] == 2

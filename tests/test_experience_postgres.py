@@ -91,7 +91,7 @@ async def harness():
     settings = Settings(database_url=os.environ["MEMORY_TEST_DATABASE_URL"], db_pool_min=1, db_pool_max=6)
     pool = await init_pool(settings)
     try:
-        assert (await health_check())["schema_revision"] == "016"
+        assert (await health_check())["schema_revision"] == "017"
         project = "experience-test-" + uuid4().hex
         tokens = {}
         for role, scopes in {"admin": ["admin"], "admin2": ["admin"], "writer": ["read", "write"], "read": ["read"], "other": ["admin"]}.items():

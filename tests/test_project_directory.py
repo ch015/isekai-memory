@@ -81,3 +81,14 @@ def test_config_tampering_fails_digest():
     args["setup"]["artifacts"] = [{"unexpected": "tampered"}]
     with pytest.raises(MemoryToolError):
         service.validate_metadata(args)
+
+
+def test_non_git_metadata_accepts_absence_and_rejects_partial_resource():
+    args = metadata()
+    args.pop("git_url")
+    args.pop("git_ref")
+    service.validate_metadata(args)
+    service.validate_metadata({**args, "git_url": None, "git_ref": None})
+    for extra in ({"git_url": "https://example.com/a.git"}, {"git_ref": "main"}, {"git_url": "", "git_ref": ""}):
+        with pytest.raises(MemoryToolError):
+            service.validate_metadata({**args, **extra})

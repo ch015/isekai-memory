@@ -8,7 +8,7 @@ import asyncpg
 
 from isekai_memory.config import Settings
 
-EXPECTED_SCHEMA_REVISION = "016"
+EXPECTED_SCHEMA_REVISION = "017"
 _pool: asyncpg.Pool | None = None
 
 

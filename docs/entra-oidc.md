@@ -1,6 +1,6 @@
 # Entra OIDC API 인증 (schema 015 도입)
 
-현재 서버 schema는 016이며 [GitHub 로그인](github-login.md)을 함께 지원한다.
+현재 서버 schema는 017이며 [GitHub 로그인](github-login.md)을 함께 지원한다.
 
 Memory는 ADE public client가 얻은 **Memory API용 v2 delegated access token**을 검증한다.
 단일 workforce tenant이며 client secret이 필요하지 않다. OIDC는 기본 비활성, 기존 opaque token 인증은 기본 유지다.
@@ -60,7 +60,7 @@ Entra role 회수는 이미 발급된 토큰에 즉시 반영되지 않을 수 �
 
 ## 배포·검증
 
-기존 DB 백업 → 요청 중지 → 새 의존성/이미지 준비 → `alembic upgrade head` → 새 서버 시작 → `/ready`의 revision 016 확인.
+기존 DB 백업 → 요청 중지 → 새 의존성/이미지 준비 → `alembic upgrade head` → 새 서버 시작 → `/ready`의 revision 017 확인.
 015는 identity table/view를 추가한다. downgrade는 새 OIDC identity mapping을 삭제하므로 백업·운영 판단 없이 실행하지 않는다.
 이 개발 작업은 실제 사용자의 로컬 서버/DB에 마이그레이션을 적용하지 않았다.
 

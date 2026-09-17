@@ -1,6 +1,6 @@
-# ADE 프로젝트 디렉터리 (schema 014)
+# ADE 프로젝트 디렉터리 (schema 017)
 
-`memory_project_list/get/register/assign`는 코드 저장소 메타데이터와 재현 가능한 CORE 구성을 관리한다.
+`memory_project_list/get/register/assign`는 Git 선택 자료와 재현 가능한 CORE 구성을 관리한다.
 Git 저장소 자체, 인증키, 로컬 State DB, 터미널 출력은 저장하지 않는다. 적용 전 `alembic upgrade head`가 필요하다.
 
 기존 project-scoped 토큰은 해당 프로젝트에만 접근한다. 여러 할당 프로젝트를 조회/사용하려면 서버 운영자가
@@ -22,3 +22,5 @@ setup schema 1은 config(비밀 없는 Project 설정), artifacts(kind/id/versio
 복원한다. 사용할 수 없는 버전을 최신 버전으로 바꾸지 않는다. 패키지 원격 배포는 기존 Git Releases 경로를 유지한다.
 
 schema 014는 전용 새 DB/로컬 PostgreSQL에서 테스트한다. 실제 사용자 서버에 자동 migration/배포하지 않는다.
+
+017의 비 Git 계약·이관·검증은 [non-git-projects.md](non-git-projects.md)를 따른다. Git URL/ref는 함께 생략하거나 null일 수 있다. 기존 ID·권한·구성은 보존한다.
