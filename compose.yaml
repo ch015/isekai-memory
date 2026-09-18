@@ -57,6 +57,8 @@ services:
     command: ["--mode", "http", "--host", "0.0.0.0", "--port", "8100"]
     environment:
       <<: *database-client
+      # Optional local ARM VM workaround; absent unless set in the shell/.env.
+      OPENSSL_armcap:
       ISEKAI_MEMORY_AUTH_ENABLED: "true"
       ISEKAI_MEMORY_GENERATION_ENABLED: "false"
       ISEKAI_MEMORY_GITHUB__ENABLED: "${ISEKAI_MEMORY_GITHUB__ENABLED:-false}"

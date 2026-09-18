@@ -145,3 +145,22 @@ Docker daemon 오류는 Docker Desktop/Engine 상태를 확인한다.
 마이그레이션 오류는 로그를 고치고 다시 up한다. 실패한 DB를 자동 초기화하지 않는다.
 서버가 healthy인데 인증 실패면 발급 프로젝트·사용자·credential_ref를 확인한다.
 순수 재시작은 소스 변경을 반영하지 않는다. 변경 적용은 build/up으로 한다.
+
+### Apple Silicon에서 시작 직후 종료 코드 132가 발생할 때
+
+ARM Docker VM에서 `cryptography.hazmat.bindings._rust`를 불러올 때
+`Illegal instruction`이 발생한다면 OpenSSL의 CPU 기능 감지 경로를 확인한다.
+2026-09-17 로컬 환경에서는 `cryptography 50.0.1`로 이 오류를 재현했고,
+`OPENSSL_armcap=0`을 전달하면 모듈 로딩과 RSA/JWT·AES-GCM 검증이 통과했다.
+해당 환경에서만 `.env`에 다음을 추가한 뒤 `./scripts/local.sh up`으로 다시 생성한다.
+
+```dotenv
+OPENSSL_armcap=0
+```
+
+이 설정은 OpenSSL의 ARM CPU 가속 감지를 건너뛰므로 성능에 영향을 줄 수 있다.
+암호화 라이브러리 버전과 인증 설정은 그대로 유지한다.
+Compose는 이 선택 변수를 Memory 컨테이너에 전달하며, 설정하지 않으면 컨테이너에서 제거한다.
+VM 업데이트 후 문제가 해결되면 `.env`에서 해당 줄을 제거하고 다시 up한다.
+근거: [OpenSSL ARM CPU 감지 구현](https://github.com/openssl/openssl/blob/openssl-4.0.2/crypto/armcap.c),
+[Compose environment의 값 없는 변수 처리](https://docs.docker.com/reference/compose-file/services/#environment).
