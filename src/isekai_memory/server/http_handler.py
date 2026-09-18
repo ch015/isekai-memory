@@ -46,6 +46,8 @@ def create_app(settings: Settings, dispatch: Any) -> FastAPI:
     from isekai_memory.server.github_routes import PUBLIC, install
     github = GitHubAuth(settings.github)
     install(app, github)
+    from isekai_memory.server.login_config import install as install_login_config
+    install_login_config(app, settings)
     mcp = McpProtocolHandler(dispatch)
     protocol_headers = {"MCP-Protocol-Version": PROTOCOL_VERSION}
 
@@ -67,7 +69,7 @@ def create_app(settings: Settings, dispatch: Any) -> FastAPI:
                 {"error": {"error_code": "MEM-HTTP-0001", "message": "Request body too large"}},
                 status_code=413,
             )
-        if (request.method, request.url.path) in PUBLIC:
+        if (request.method, request.url.path) in PUBLIC or (request.method, request.url.path) == ("GET", "/auth/config"):
             return await call_next(request)
         if not settings.auth_enabled:
             request.state.principal = Principal.local_stdio()
