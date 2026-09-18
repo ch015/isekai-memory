@@ -111,7 +111,7 @@ class GitHubAuth:
             if len(self.cache) >= 1024:
                 self.cache.clear()
             self.cache[key] = (time.monotonic() + 60, identity)
-        if identity["subject"] not in self.settings.allowed_user_ids:
+        if not self.settings.permits(identity["subject"], identity["username"]):
             raise denied("This GitHub user is not assigned to DevSecOps", 403)
         # Check local disable/organization on every request, even for cached provider responses.
         user_id = await self.resolver(identity["subject"], self.settings.organization_id)

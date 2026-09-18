@@ -1,6 +1,6 @@
 # GitHub OAuth 로그인 (schema 016)
 
-GitHub.com 전용 OAuth 앱의 code+PKCE 교환, 앱 귀속 토큰 확인, 숫자 사용자 ID 허용 목록을 구현한다.
+GitHub.com 전용 OAuth 앱의 code+PKCE 교환, 앱 귀속 토큰 확인, 숫자 사용자 ID·사용자명 허용 목록을 구현한다.
 Entra OIDC 및 기존 Memory token과 병행 가능하다. GitHub 로그인은 OIDC ID token을 사용하는 흐름이 아니다.
 실제 OAuth 앱 등록값을 아직 제공받지 않았으며, 운영 배포·실제 GitHub 동의·Windows 인수는 별도다.
 
@@ -15,12 +15,27 @@ server 환경변수 또는 JSON `auth.github`로 설정한다. secret은 서버 
 | ENABLED | 기본 false |
 | CLIENT_ID | 전용 GitHub OAuth App client ID |
 | CLIENT_SECRET | 서버 전용 앱 secret; ADE에 배포하지 않음 |
-| ALLOWED_USER_IDS | JSON 문자열 배열, 예: `["123456"]`; 운영자가 확인한 불변 숫자 ID |
+| ALLOWED_USER_IDS | JSON 문자열 배열, 예: `["ch015", "123456"]`; 사용자명과 불변 숫자 ID 혼용 |
 | ALLOW_LEGACY_TOKENS | 기본 true; false면 기존 수동 token을 차단 |
 
-DevSecOps 고정이며 enabled일 때 빈 secret·빈 허용 목록·숫자가 아닌 ID·auth_enabled=false를 거부한다.
+DevSecOps 고정이며 enabled일 때 빈 secret·빈 허용 목록·잘못된 ID/사용자명·auth_enabled=false를 거부한다.
 활성 Entra/GitHub 중 하나라도 legacy=false이면 수동 token은 거부하되 두 활성 공급자는 함께 허용한다.
-이메일·GitHub login 이름·organization 이름으로 사용자를 자동 승인하지 않는다.
+사용자명은 대소문자를 구분하지 않으며 선택적으로 `@`를 붙일 수 있다. 숫자만 있는 값은 기존처럼
+숫자 ID로 해석한다. 숫자로만 된 사용자명은 `@123`처럼 구분한다. 이메일·표시 이름·organization
+멤버십으로 사용자를 자동 승인하지 않는다.
+
+```dotenv
+ISEKAI_MEMORY_GITHUB__ALLOWED_USER_IDS='["ch015","another-user","123456"]'
+```
+
+앱 귀속 토큰 검증 응답의 `user.login`으로 직접 비교하므로 사용자명 조회 API는 추가 호출하지 않는다.
+허용 기준만 확장하며 DB identity·기존 프로젝트/작업/권한은 계속 숫자 ID를 사용한다. 데이터 이관은 없다.
+사용자명을 바꾸면 허용 목록도 갱신해야 한다. 이전 이름은 다른 계정이 가져갈 수 있으므로 이름 기준
+허용은 그 이름의 현재 소유자에게 적용된다. 계정 자체에 허용을 고정하려면 숫자 ID를 사용한다.
+이름 재사용 동작은 [GitHub 공식 문서](https://docs.github.com/en/account-and-profile/concepts/username-changes)를 따른다.
+새 소유자에게 과거 계정의 프로젝트 권한/기록을 합치지 않는다. 공급자 정보 캐시는 기존 최대 60초다.
+Compose 사용 시 `.env` 변경 후 `docker compose up --build -d --wait`로 서버를 재생성한다.
+기존 allowlist·앱 secret·DB 볼륨은 자동 변경하지 않는다.
 
 ## 서버 API와 경계
 
@@ -67,7 +82,7 @@ GitHub를 비활성으로 사용하더라도 새 코드의 schema는 017이어�
 
 ## 모듈과 테스트
 
-- `server/github_config.py`: 설정·불변 subject 검증.
+- `server/github_config.py`: 사용자명/숫자 ID 허용 목록 정규화·비교, 불변 subject 검증.
 - `server/github.py`: 고정 GitHub endpoint, 교환·갱신, 앱 검증·캐시·허용 목록.
 - `server/github_routes.py`: 작은 공개 HTTP 교환 경계.
 - `store/github_identities.py`, `server/github_admin.py`: 로컬 사용자·차단·명시적 연결.
