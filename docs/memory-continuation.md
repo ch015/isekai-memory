@@ -1,7 +1,11 @@
 # M8: addressed, reproducible handoff packages
 
+Current server schema is **020**. The schema-1 Git contract below is retained; schema-2 directory
+snapshots and portable compatibility are specified in [project sharing](project-sharing.md) and
+[multi-user operation](multiuser-operation.md). Database revision and continuation schema version are separate.
+
 This document describes the single-recipient package baseline from schema `009`.
-Current schema `010` adds [1:N continuity and opt-in Core checkpoint/preparation](memory-project-continuity.md)
+Database revision `010` introduced [1:N continuity and opt-in Core checkpoint/preparation](memory-project-continuity.md)
 through separate tools. No automatic worker resume or notifications are enabled.
 M7 delivery leases remain delivery ownership, not a distributed lock over work
 running on another machine.

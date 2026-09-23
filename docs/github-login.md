@@ -1,5 +1,8 @@
 # GitHub OAuth 로그인 (schema 016)
 
+016은 GitHub 인증의 도입 버전이며 현재 배포는 schema **020**을 요구한다.
+프로젝트 멤버십·기존 토큰 변경 사항은 [다중 사용자 운영](multiuser-operation.md)을 따른다.
+
 GitHub.com 전용 OAuth 앱의 code+PKCE 교환, 앱 귀속 토큰 확인, 숫자 사용자 ID·사용자명 허용 목록을 구현한다.
 Entra OIDC 및 기존 Memory token과 병행 가능하다. GitHub 로그인은 OIDC ID token을 사용하는 흐름이 아니다.
 실제 OAuth 앱 등록값을 아직 제공받지 않았으며, 운영 배포·실제 GitHub 동의·Windows 인수는 별도다.
@@ -76,8 +79,9 @@ isekai-memory --enable-github-user <숫자-ID>
 기존 binding 변경·중복 user_id binding을 거부한다. disable은 다음 인증 요청과 협업 eligibility에서 즉시 적용된다.
 GitHub와 Entra의 두 identity를 같은 Memory user에 명시적으로 연결했다면 긴급 차단 시 두 identity와 기존 token을 각각 차단한다.
 
-배포는 DB 백업 → 요청 중지 → 새 서버 준비 → `alembic upgrade head` → 서버 시작 → `/ready` revision **017** 확인 순서다.
-GitHub를 비활성으로 사용하더라도 새 코드의 schema는 017이어야 한다. downgrade는 GitHub identity binding을 삭제하므로 데이터 백업 없이 실행하지 않는다.
+배포는 DB 백업 → 요청 중지 → 새 서버 준비 → `alembic upgrade head` → 서버 시작 → `/ready` revision **020** 확인 순서다.
+GitHub를 비활성으로 사용하더라도 새 코드의 schema는 020이어야 한다. 016 이전으로 downgrade하면
+GitHub identity binding을 삭제하므로 데이터 백업 없이 실행하지 않는다. 018–020의 별도 downgrade 제한도 따른다.
 이 개발 작업은 운영/로컬 사용 중인 서버 DB를 수정하지 않았다.
 
 ## 모듈과 테스트

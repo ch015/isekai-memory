@@ -1,13 +1,18 @@
 # Non-Git work projects — schema 017
 
+This is the historical 017 migration record. Current deployments require **020**; follow
+[project sharing](project-sharing.md) and [multi-user operation](multiuser-operation.md).
+From 019, `source_kind` distinguishes Git/directory/unknown independently of clone URLs.
+Null Git URL/ref means no shared clone source, not proof that the original workspace is non-Git.
+
 2026-09-17. ADE S1/J1/J3: a project is a persistent work identity; Git is optional.
 `memory_project_register` accepts omitted or null `git_url` and `git_ref`. Supply both valid strings for a Git resource,
-or neither for a work project. Empty strings and partial pairs are invalid. list/get return both fields as null
-for a non-Git project. Ownership, membership, token scope, setup digest and revision guards are unchanged.
+or neither when no clone source is shared. Empty strings and partial pairs are invalid. list/get return null
+for both fields in that case. The 017 migration preserved ownership, membership, token scope, setup digest and revision guards.
 
 ## Migration and recovery
 
-Deploy server code with `alembic upgrade head` to 017 before enabling ADE automatic non-Git registration.
+At the time of this change, `alembic upgrade head` applied 017. Current head is 020; do not deploy current code against 017.
 017 only relaxes the two columns and adds a paired-null constraint. It does not rewrite IDs, setup manifests,
 revisions, owners, members, token records, handoffs or experiences. Old Git clients continue to register Git projects.
 Older ADE clients cannot acquire non-Git projects; update ADE with the server.

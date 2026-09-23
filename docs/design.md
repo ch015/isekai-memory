@@ -1,5 +1,10 @@
 # ISEKAI Memory Design (v0.8)
 
+Current deployment baseline: schema **020**, 89 tools. This document retains foundational contracts;
+[project directory](ade-project-directory.md), [member authorization](multiuser-operation.md), and
+[project records/directory snapshots](project-sharing.md) define the subsequent current behavior.
+ADE owns its embedded client; standalone Core installation is not an ADE prerequisite.
+
 ## 1. Scope
 
 `isekai-memory` is a standalone PostgreSQL-backed Work Handoff, Project Experience and Repository Registry MCP server. Handoff (Phase 1–6 recoverable-handoff server track) is implemented here. Core-side automatic acquisition and context injection are implemented in the `isekai-core` repository (`src/isekai/memory/`). Experience APIs are explicit server tools; M3 adds separately opt-in Core recall, disabled by default.

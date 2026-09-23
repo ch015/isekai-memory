@@ -1,5 +1,9 @@
 # M9 TUI: 사용자·작업별 모델 토큰 사용량
 
+현재 배포는 Memory schema **020**을 사용한다. [운영 갱신](multiuser-operation.md)과
+[자료·이력 공유](project-sharing.md)가 현재 기준이다. 아래 M9 설계·검증 수·schema 번호는
+2026-09-14/15 당시의 기록이며 최신 서버 또는 ADE 화면의 인수를 뜻하지 않는다.
+
 상태: **사용량 ledger/API·정책·Core parser/reporter/outbox·TUI 연결 구현 및 합성 검증**. 2026-09-14.
 [현재 v1 구현 계약](memory-usage-runtime.md)을 우선 참조한다. 아래는 원 설계와
 이전 순수 수치 단계의 기록도 포함한다. Core worker는 현재 작업 미연결 run으로
@@ -34,7 +38,7 @@
 - Memory의 기존 offline generation에 있는 문자 수와 비용 0 기록은 CLI 모델 토큰
   사용량이 아니다. 이를 이 화면의 토큰 수나 모든 작업의 비용 0으로 옮기지 않는다.
 
-현재 schema 012/80 tools에는 별도 opt-in 정책·소유권/receipt 원장·기간 집계가
+사용량 도입 당시 schema 012/80 tools에는 별도 opt-in 정책·소유권/receipt 원장·기간 집계가
 연결됐다. Core는 기존 context_usage와 별도 DTO로 검증된 Codex 형식의 종료 usage를
 보고하며 owner-only outbox를 사용한다. TUI의 f/j로 필터/관리 정책을 연다.
 과거 기록 수집과 실제 계정/프로젝트 활성화는 하지 않았으며 기존 초기 프롬프트

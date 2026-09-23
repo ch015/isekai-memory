@@ -1,5 +1,9 @@
 # M8 project continuity and 1:N handoff
 
+Current deployment requires schema **020**. The 010-era policies below remain the foundation;
+[project sharing](project-sharing.md) adds directory snapshots and [multi-user operation](multiuser-operation.md)
+updates membership and cross-installation compatibility. Git-only preparation below describes continuation schema 1.
+
 Implemented on schema **010**, with the single-recipient package contract from
 009 preserved. Core integration is explicitly opt-in. This is an authenticated
 MCP/REST service and Core CLI/local-MCP implementation, not an administration UI,

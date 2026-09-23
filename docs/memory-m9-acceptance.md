@@ -1,5 +1,9 @@
 # M9 완료 검증표
 
+현재 배포는 Memory schema **020**을 사용한다. [운영 갱신](multiuser-operation.md)과
+[자료·이력 공유](project-sharing.md)가 현재 기준이다. 아래 M9 설계·검증 수·schema 번호는
+2026-09-14/15 당시의 기록이며 최신 서버 또는 ADE 화면의 인수를 뜻하지 않는다.
+
 완료 기록: 2026-09-15. 구현·최종 테스트: 2026-09-14. **로컬 구현·합성 검증 완료**.
 운영 배포·프로젝트 활성화·실제 구독 CLI 실행·새 인증·커밋·푸시 완료를 의미하지 않는다.
 
@@ -79,7 +83,7 @@ isekai --project . watch --work --manage     # 같은 TUI에서 두 모드
 
 [Core 사용자 작업 계약](memory-user-work-console.md), [알림 운영 계약](memory-collaboration-events.md),
 [관측 한계](memory-controller-runtime.md)를 먼저 확인한다.
-서버 운영 적용은 별도 승인과 백업 뒤 의존성 설치·schema 013 migration이 필요하다.
+서버 운영 적용은 별도 승인과 백업 뒤 의존성 설치·현재 head인 schema 020 migration과 멤버십 확인이 필요하다. 위 013 결과는 M9 당시 검증 기록이다.
 
 ## 토큰 범위와 명시적 제외
 

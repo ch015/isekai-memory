@@ -1,5 +1,9 @@
 # M9 협업 TUI 구현 준비서
 
+현재 배포는 Memory schema **020**을 사용한다. [운영 갱신](multiuser-operation.md)과
+[자료·이력 공유](project-sharing.md)가 현재 기준이다. 아래 M9 설계·검증 수·schema 번호는
+2026-09-14/15 당시의 기록이며 최신 서버 또는 ADE 화면의 인수를 뜻하지 않는다.
+
 후속 [전체 프로젝트 연결 목록·전환](memory-multi-project-console.md) 적용 후에는
 기본 watch가 전역 목록이며, 기존 단일 프로젝트 진입은 --project를 명시한다.
 
@@ -7,7 +11,7 @@
 [완료 검증표](memory-m9-acceptance.md), [사용자 작업](memory-user-work-console.md),
 [변경 알림](memory-collaboration-events.md), [컨트롤러 관측](memory-controller-runtime.md),
 [경험 검색·검토](memory-experience-console.md), [토큰 관측](memory-usage-runtime.md)을 따른다.
-현재 Memory schema 013 / 82 tools. 기존 M8 계약·미커밋 변경을 보존한다.
+M9 검증 당시 Memory schema 013 / 82 tools. 기존 M8 계약·미커밋 변경을 보존한다.
 실제 구독 계정 실행, 운영 활성화·배포·커밋·푸시는 검증 범위 밖이다.
 사용자의 최종 범위 확인에 따라 토큰 사용량과 미수집 여부 표시가 핵심이며,
 비용 계산·예산·결제 개발은 범위 밖이다. 이미 구현된 선택 알림은 기본 꺼짐이다.
@@ -355,7 +359,7 @@ M9-3 관찰 화면만으로 M9 전체를 완료 처리하지 않는다. **관리
 ## 10. 실제 운영 전 체크
 
 1. 운영 데이터 백업 후 의존성을 설치하고 Memory에서 `python -m alembic upgrade head`를
-   명시적으로 실행한다. schema 013과 82 tools의 readiness를 확인한다. 이 작업에서 운영 DB는 변경하지 않았다.
+   명시적으로 실행한다. 현재 코드에서는 schema 020과 89 tools의 readiness를 확인한다. 이 작업에서 운영 DB는 변경하지 않았다.
 2. Core는 `python -m pip install -e '.[console]'`로 선택 TUI 의존성을 설치한다.
    실제 경로의 Python을 사용한다. 이전 디렉터리로 이동하기 전 만들어진 실행 스크립트의 shebang은 별도 정비 대상이다.
 3. 사용자별 기존 credential_ref와 프로젝트 권한을 설정한다. 신원은 Git author가 아니다.

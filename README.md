@@ -2,9 +2,9 @@
 
 Work Handoff, governed Project Experience, and Repository Registry for ISEKAI. This repository implements the standalone Memory service. ADE's embedded engine implements handoff acquisition and context injection in `engine/src/isekai/memory/`. Experience proposal, review, correction, history, forgetting and retrieval are explicit server tools. Clients can separately opt in to bounded experience recall; it remains disabled by default.
 
-Artifact distribution has moved to Git Releases — Foundation and Preset archives are built in CI, published to each repository's releases, and installed locally via `isekai init --foundation <path> --preset <path>`. The Memory server no longer stores or serves artifact binaries.
+Artifact distribution is separate from Memory. ADE installs its signed starter bundle; the standalone Core CLI uses its pinned bootstrap sources or verified archives. Repository source pushes do not publish new archives or update existing projects. The Memory server does not store or serve artifact binaries.
 
-Current schema: **020**. ADE's embedded engine is the active client for these improvements;
+Current schema: **020**, with **89 MCP tools**. ADE's embedded engine is the active client for these improvements;
 the standalone `isekai-core` repository is not required by ADE.
 See [project materials and history](docs/project-sharing.md) and [multi-user operation and upgrade](docs/multiuser-operation.md)
 for membership, cross-PC handoffs, file-sharing limits and deployment order.
@@ -154,8 +154,18 @@ curl -sS http://localhost:8100/mcp \
 
 ## MCP tools
 
+The [complete current catalog](docs/mcp-tool-catalog.md) lists all 89 tools and minimum token scopes.
+The core/project subset is summarized below; later sections describe the other tool families.
+
 | Tool | Required scope | Purpose |
 |---|---:|---|
+| `memory_project_list` | read | List projects owned by or assigned to the authenticated actor |
+| `memory_project_get` | read | Read authorized source metadata and exact setup manifest |
+| `memory_project_register` | write | Register or update source kind and setup with revision guards |
+| `memory_project_assign` | write | Owner-controlled read/write member assignment or removal |
+| `memory_project_record_put` | write | Store actor-bound material, result or activity with idempotent ID |
+| `memory_project_record_list` | read | Search member-scoped records with citations and pagination |
+| `memory_project_record_remove` | write | Author/owner deletion with a tombstone preventing late retry resurrection |
 | `memory_repo_list` | read | List registered artifact repositories |
 | `memory_repo_check_updates` | read | Check repositories for newer releases |
 | `memory_handoff_push` | write | Register a Task/Result handoff |
@@ -606,10 +616,12 @@ See [`docs/design.md`](docs/design.md) for contracts and trust boundaries.
 
 The follow-up [multi-project console](docs/memory-multi-project-console.md) makes
 `isekai watch` a global connection directory with project switching. Nunchi login
-and new RBAC remain separate; existing project-token authorization is unchanged.
+and new RBAC remain separate from that historical TUI work. Current registered projects enforce
+live membership even for project-scoped tokens; see [multi-user operation](docs/multiuser-operation.md).
 
 See [M9 acceptance and operating boundary](docs/memory-m9-acceptance.md),
 [user work/lease console](docs/memory-user-work-console.md), and
 [durable change feed](docs/memory-collaboration-events.md).
-The current Memory schema is 013 with 82 MCP tools. Core provides the optional
-user/admin TUI; token monitoring is not billing or budget management.
+M9 was verified with schema 013 and 82 tools. Current server code requires schema 020
+and exposes 89 tools. The standalone Core TUI and ADE team-sharing UI are separate clients;
+token monitoring is not billing or budget management.
