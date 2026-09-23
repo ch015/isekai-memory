@@ -92,3 +92,12 @@ def test_non_git_metadata_accepts_absence_and_rejects_partial_resource():
     for extra in ({"git_url": "https://example.com/a.git"}, {"git_ref": "main"}, {"git_url": "", "git_ref": ""}):
         with pytest.raises(MemoryToolError):
             service.validate_metadata({**args, **extra})
+
+
+def test_source_kind_is_independent_of_clone_coordinates():
+    args = {**metadata(), "git_url": None, "git_ref": None}
+    for kind in ("git", "directory", "unknown"):
+        service.validate_metadata({**args, "source_kind": kind})
+    for kind in ("directory", "unknown", "unsupported"):
+        with pytest.raises(MemoryToolError):
+            service.validate_metadata({**metadata(), "source_kind": kind})

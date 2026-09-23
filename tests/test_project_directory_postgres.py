@@ -10,7 +10,7 @@ from isekai_memory.config import Settings
 from isekai_memory.main import ToolDispatcher
 from isekai_memory.server.auth import Principal
 from isekai_memory.server.errors import MemoryToolError
-from isekai_memory.store.database import close_pool, get_pool, health_check, init_pool
+from isekai_memory.store.database import EXPECTED_SCHEMA_REVISION, close_pool, get_pool, health_check, init_pool
 from tests.test_project_directory import metadata
 
 pytestmark = pytest.mark.skipif(not os.environ.get("MEMORY_TEST_DATABASE_URL"), reason="requires disposable PostgreSQL")
@@ -21,7 +21,7 @@ async def directory():
     settings = Settings(database_url=os.environ["MEMORY_TEST_DATABASE_URL"], db_pool_min=1, db_pool_max=3)
     await init_pool(settings)
     try:
-        assert (await health_check())["schema_revision"] == "017"
+        assert (await health_check())["schema_revision"] == EXPECTED_SCHEMA_REVISION
         yield ToolDispatcher(settings), "directory-" + uuid4().hex
     finally:
         await close_pool()

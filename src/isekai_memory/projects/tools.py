@@ -37,6 +37,7 @@ PROJECT_TOOLS = [
             "project_id": ID,
             "organization_id": TEXT,
             "name": TEXT,
+            "source_kind": {"enum": ["git", "directory", "unknown"]},
             "git_url": {"type": ["string", "null"], "minLength": 1, "maxLength": 2048},
             "git_ref": {"type": ["string", "null"], "minLength": 1, "maxLength": 200},
             "setup": {"type": "object"},

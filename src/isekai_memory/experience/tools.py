@@ -102,6 +102,7 @@ EXPERIENCE_TOOLS = [
         ["query"],
         {
             "query": {**_TEXT, "maxLength": 512},
+            "compatibility_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
             "kind": _KIND,
             **_VISIBILITY,
             "limit": {"type": "integer", "minimum": 1, "maximum": 50, "default": 10},

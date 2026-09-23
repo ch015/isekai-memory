@@ -1,6 +1,7 @@
 """M7 input, identity, pagination and metadata contracts without a database."""
 
 from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -63,6 +64,7 @@ def test_renew_requires_bounded_absolute_deadline_and_fencing(extra):
 
 @pytest.mark.asyncio
 async def test_dispatcher_derives_inbox_actor(monkeypatch):
+    monkeypatch.setattr("isekai_memory.projects.service.access", AsyncMock(return_value=(None, None)))
     captured = {}
 
     async def inbox(arguments, *, actor_id):
@@ -77,6 +79,7 @@ async def test_dispatcher_derives_inbox_actor(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_renew_hashes_token_and_normalizes_timezone(monkeypatch):
+    monkeypatch.setattr("isekai_memory.projects.service.access", AsyncMock(return_value=(None, None)))
     captured = {}
 
     async def renew_lease(**kwargs):

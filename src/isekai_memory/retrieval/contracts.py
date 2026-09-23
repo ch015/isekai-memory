@@ -16,6 +16,7 @@ class RetrievalRequest:
     kind: str | None
     source_lock_digest: str | None
     limit: int
+    compatibility_digest: str | None = None
 
 
 @dataclass(frozen=True)

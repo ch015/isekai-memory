@@ -80,6 +80,8 @@ async def push_handoff(
     if handoff_version == 2:
         payload_material.update(handoff_version=2, recipient_user_id=recipient,
                                 continuation=package, continuation_digest=continuation_digest)
+    if "compatibility_digest" in arguments:
+        payload_material["compatibility_digest"] = arguments["compatibility_digest"]
     payload_digest = _digest(payload_material)
     expires_at = datetime.now(UTC) + timedelta(hours=settings.handoff_default_expiry_hours)
     row = await queries.insert_handoff(
@@ -106,6 +108,7 @@ async def push_handoff(
         recipient_user_id=recipient,
         continuation=package,
         continuation_digest=continuation_digest,
+        compatibility_digest=arguments.get("compatibility_digest"),
     )
     if row is None:
         existing = await queries.get_handoff_by_attempt(
@@ -137,8 +140,12 @@ async def push_handoff(
     }
 
 
-async def list_handoffs(arguments: dict[str, Any]) -> list[dict[str, Any]]:
-    rows = await queries.list_pending_handoffs(project_id=arguments["project_id"], unit_id=arguments.get("unit_id"))
+async def list_handoffs(arguments: dict[str, Any], *, actor_id: str = "local-stdio") -> list[dict[str, Any]]:
+    rows = await queries.list_pending_handoffs(
+        project_id=arguments["project_id"], unit_id=arguments.get("unit_id"),
+        limit=arguments.get("limit", 100), after_id=arguments.get("after_id"),
+        exclude_actor=actor_id if arguments.get("exclude_own", False) else None,
+    )
     return [
         {
             "id": str(row["id"]),
@@ -175,6 +182,7 @@ async def pull_handoff(
         )
     return {
         "handoff_id": str(row["id"]),
+        **({"compatibility_digest": row["compatibility_digest"]} if row.get("compatibility_digest") else {}),
         "project_id": row["project_id"],
         "unit_id": row["unit_id"],
         "phase_attempt_id": row["phase_attempt_id"],
@@ -206,6 +214,7 @@ def _claim_token_digest(claim_token: str) -> str:
 def _recoverable_handoff_result(row: dict[str, Any]) -> dict[str, Any]:
     return {
         **continuation.delivery_fields(row),
+        **({"compatibility_digest": row["compatibility_digest"]} if row.get("compatibility_digest") else {}),
         "handoff_id": str(row["id"]),
         "project_id": row["project_id"],
         "unit_id": row["unit_id"],

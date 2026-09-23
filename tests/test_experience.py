@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import asyncpg
@@ -55,6 +56,7 @@ def test_proposal_rejects_forged_metadata_and_invalid_input(field, value):
 
 
 async def test_dispatch_binds_actor_and_normalizes_idempotency_material(monkeypatch):
+    monkeypatch.setattr("isekai_memory.projects.service.access", AsyncMock(return_value=(None, None)))
     calls = []
 
     async def capture(**kwargs):

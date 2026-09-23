@@ -9,6 +9,7 @@ import sys
 from typing import Any
 
 from isekai_memory.server.protocol import PROTOCOL_VERSION
+from isekai_memory.server.tools import TOOL_NAMES
 
 
 def request(identifier: int, method: str, params: dict[str, Any] | None = None) -> str:
@@ -74,7 +75,7 @@ def main() -> None:
     assert discovered["supportedVersions"] == [PROTOCOL_VERSION]
     assert discovered["ttlMs"] == 3_600_000 and discovered["cacheScope"] == "public"
     assert "serverInfo" not in discovered
-    assert len(responses[1]["result"]["tools"]) == 82
+    assert {tool["name"] for tool in responses[1]["result"]["tools"]} == TOOL_NAMES
 
     db_call = responses[2]["result"]
     assert db_call["isError"] is False, db_call
@@ -96,7 +97,7 @@ def main() -> None:
             {
                 "mcp_protocol": PROTOCOL_VERSION,
                 "server_discover": True,
-                "tool_count": 82,
+                "tool_count": len(TOOL_NAMES),
                 "experience_search": True,
                 "database_tool_call": True,
                 "initialize_rejected": True,

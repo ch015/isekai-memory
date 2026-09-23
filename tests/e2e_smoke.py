@@ -15,10 +15,13 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from isekai_memory.store.database import EXPECTED_SCHEMA_REVISION
+
 sys.path.insert(0, str(Path(__file__).parent))
 from helpers import handoff_arguments  # noqa: E402
 
 from isekai_memory.server.protocol import PROTOCOL_VERSION
+from isekai_memory.server.tools import TOOL_NAMES
 
 BASE_URL = os.environ["MEMORY_BASE_URL"].rstrip("/")
 ADMIN_TOKEN = os.environ["MEMORY_ADMIN_TOKEN"]
@@ -91,7 +94,7 @@ def mcp_tool(token: str, name: str, arguments: dict[str, Any]) -> Any:
 
 def main() -> None:
     status, ready, _ = request("/ready")
-    assert status == 200 and ready == {"database": "ok", "schema_revision": "013"}, ready
+    assert status == 200 and ready == {"database": "ok", "schema_revision": EXPECTED_SCHEMA_REVISION}, ready
 
     discovered = mcp("server/discover", token=ADMIN_TOKEN)
     assert discovered["supportedVersions"] == [PROTOCOL_VERSION]
@@ -100,7 +103,7 @@ def main() -> None:
     assert discovered["_meta"]["io.modelcontextprotocol/serverInfo"]["name"] == "isekai-memory"
     listed = mcp("tools/list", token=ADMIN_TOKEN)
     names = {tool["name"] for tool in listed["tools"]}
-    assert len(names) == 82, names
+    assert names == TOOL_NAMES, names
     assert "memory_search" in names and "memory_experience_review" in names
     assert "memory_artifact_publish" not in names
     assert isinstance(mcp_tool(ADMIN_TOKEN, "memory_repo_list", {}), list)

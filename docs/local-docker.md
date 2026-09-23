@@ -37,9 +37,9 @@ docker compose up -d
 - API 문서: `http://127.0.0.1:8100/docs`
 - DB: Compose 내부 `db:5432`에만 제공. 호스트 DB 포트는 열지 않는다.
 
-기본 호스트 바인딩은 0.0.0.0으로 모든 IPv4 인터페이스의 8100 포트에 연결한다.
-같은 네트워크의 다른 PC는 `http://서버PC의_LAN_IP:8100/mcp`로 접속한다.
-서버 PC 방화벽에서 신뢰하는 LAN의 접근만 허용하고 인터넷 포트 포워딩은 하지 않는다.
+기본 호스트 바인딩은 127.0.0.1이며 같은 PC에서만 접근한다.
+팀 접속은 HTTPS 프록시 또는 암호화된 터널로 제공한다. 다른 인터페이스에 바인딩하려면
+`ISEKAI_LOCAL_BIND_HOST`를 명시하고 접근 범위를 제한한다. 원격 평문 HTTP는 토큰을 암호화하지 않는다.
 기존 토큰 인증은 그대로 필요하며 DB 포트는 호스트에 공개하지 않는다.
 서버 컨테이너 내부의 0.0.0.0은 Docker 포트 연결을 위한 값이다.
 Docker socket이나 소스·사용자 홈 디렉터리를 컨테이너에 마운트하지 않는다.
@@ -76,6 +76,7 @@ Docker 재시작 후 DB/서버는 unless-stopped 정책을 따르지만,
 
 ```dotenv
 COMPOSE_PROJECT_NAME=isekai-memory-local
+ISEKAI_LOCAL_BIND_HOST=127.0.0.1
 ISEKAI_LOCAL_PORT=8100
 ISEKAI_LOCAL_DB_PASSWORD='isekai-local-only'
 ```
@@ -117,11 +118,13 @@ up은 기본 관리자나 토큰을 자동 생성하지 않는다. 필요할 때
 서버 로그·Git·프로젝트 JSON에 복사하지 말고 기존 host-local credential 파일
 또는 ISEKAI_MEMORY_CREDENTIAL_* 환경 변수에 보관한다. 재실행하면 새 키가 발급된다.
 이 키는 GitHub push 토큰이 아니며 다른 프로젝트 권한을 자동으로 얻지 않는다.
+018부터 등록된 프로젝트는 토큰 사용자도 소유자의 명시적인 멤버 할당이 필요하다.
+[여러 사용자 운영·갱신 절차](multiuser-operation.md)를 따른다.
 
 호스트에서 `isekai watch` → a로 프로젝트를 등록한다.
 
 - endpoint: `http://127.0.0.1:8100/mcp` (포트를 변경했다면 해당 값).
-  다른 PC의 Core/TUI에서는 127.0.0.1 대신 서버 PC의 LAN IP를 입력한다.
+  다른 PC의 Core/TUI에서는 팀용 HTTPS 주소 또는 로컬 터널 주소를 입력한다.
 - project_id: 발급 때 지정한 project-a.
 - credential_ref: 토큰을 저장한 기존 credential 이름.
 - expected_actor_id: 발급 때 지정한 사용자 ID (선택).

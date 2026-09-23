@@ -24,7 +24,7 @@ from uuid import uuid4
 from isekai_memory.config import Settings
 from isekai_memory.server.auth import hash_token
 from isekai_memory.store import queries
-from isekai_memory.store.database import close_pool, health_check, init_pool
+from isekai_memory.store.database import EXPECTED_SCHEMA_REVISION, close_pool, health_check, init_pool
 
 
 async def tokens(settings: Settings, project: str) -> tuple[dict, list[str]]:
@@ -88,7 +88,7 @@ def main() -> None:
                 while time.monotonic() < deadline and process.poll() is None:
                     try:
                         with urllib.request.urlopen(environment["MEMORY_BASE_URL"] + "/ready", timeout=1) as response:
-                            if json.load(response).get("schema_revision") == "013":
+                            if json.load(response).get("schema_revision") == EXPECTED_SCHEMA_REVISION:
                                 break
                     except (OSError, urllib.error.URLError):
                         time.sleep(0.05)
@@ -121,7 +121,7 @@ def main() -> None:
                             while time.monotonic() < restart_deadline and process.poll() is None:
                                 try:
                                     with urllib.request.urlopen(environment["MEMORY_BASE_URL"] + "/ready", timeout=1) as response:
-                                        if json.load(response).get("schema_revision") == "013":
+                                        if json.load(response).get("schema_revision") == EXPECTED_SCHEMA_REVISION:
                                             break
                                 except (OSError, urllib.error.URLError):
                                     time.sleep(0.05)

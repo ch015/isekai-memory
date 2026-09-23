@@ -16,7 +16,8 @@ SCHEMA = {
     "required": ["schema_version", "goal", "verified_state", "repository", "workspace", "artifacts",
                  "remaining_work", "next_steps", "blockers"],
     "properties": {
-        "schema_version": {"type": "integer", "const": 1},
+        "schema_version": {"type": "integer", "enum": [1, 2]},
+        "compatibility_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "goal": TEXT, "verified_state": TEXT, "remaining_work": TEXT_LIST,
         "next_steps": {**TEXT_LIST, "minItems": 1}, "blockers": TEXT_LIST, "decisions": TEXT_LIST,
         "repository": {
@@ -52,6 +53,16 @@ SCHEMA = {
         },
     },
 }
+
+# v1 keeps its exact Git contract; v2 is an allowlisted directory snapshot with no invented commit.
+GIT_SOURCE = SCHEMA["properties"]["repository"]
+DIRECTORY_SOURCE = {"type": "object", "additionalProperties": False, "required": ["source_id", "kind"],
+                    "properties": {"source_id": OPAQUE, "kind": {"const": "directory"}}}
+SCHEMA["properties"]["repository"] = {"oneOf": [GIT_SOURCE, DIRECTORY_SOURCE]}
+SCHEMA["allOf"] = [{"if": {"properties": {"schema_version": {"const": 1}}},
+                    "then": {"properties": {"repository": GIT_SOURCE}},
+                    "else": {"properties": {"repository": DIRECTORY_SOURCE,
+                                               "workspace": {"properties": {"state": {"enum": ["captured", "unavailable"]}}}}}}]
 
 
 def invalid(message):

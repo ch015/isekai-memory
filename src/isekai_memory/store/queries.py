@@ -131,6 +131,7 @@ async def insert_handoff(
     lock_snapshot_digest: str, envelope_digest: str, payload_digest: str,
     expires_at: datetime, handoff_version: int = 1, recipient_user_id: str | None = None,
     continuation: dict[str, Any] | None = None, continuation_digest: str | None = None,
+    compatibility_digest: str | None = None,
 ) -> dict[str, Any] | None:
     pool = get_pool()
     async with pool.acquire() as conn, conn.transaction():
@@ -155,10 +156,10 @@ async def insert_handoff(
                 result_status, classification, task_summary, passed_checks, artifacts_produced, handoff_note,
                 task_envelope, result_envelope, context_digest, raw_output,
                 lock_snapshot_digest, envelope_digest, payload_digest, expires_at,
-                handoff_version, recipient_user_id, continuation, continuation_digest
+                handoff_version, recipient_user_id, continuation, continuation_digest, compatibility_digest
             ) VALUES (
                 $1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11,
-                $12::jsonb,$13::jsonb,$14,$15,$16,$17,$18,$19,$20,$21,$22::jsonb,$23
+                $12::jsonb,$13::jsonb,$14,$15,$16,$17,$18,$19,$20,$21,$22::jsonb,$23,$24
             )
             ON CONFLICT (project_id, phase_attempt_id) DO NOTHING
             RETURNING id, created_at, expires_at
@@ -167,7 +168,7 @@ async def insert_handoff(
             result_status, classification, task_summary, passed_checks, artifacts_produced, handoff_note,
             task_envelope, result_envelope, context_digest, raw_output,
             lock_snapshot_digest, envelope_digest, payload_digest, expires_at,
-            handoff_version, recipient_user_id, continuation, continuation_digest,
+            handoff_version, recipient_user_id, continuation, continuation_digest, compatibility_digest,
         )
     return dict(row) if row is not None else None
 
@@ -186,7 +187,8 @@ async def get_handoff_by_attempt(*, project_id: str, phase_attempt_id: str) -> d
     return dict(row) if row is not None else None
 
 
-async def list_pending_handoffs(*, project_id: str, unit_id: str | None = None) -> list[dict[str, Any]]:
+async def list_pending_handoffs(*, project_id: str, unit_id: str | None = None, limit: int = 100,
+                               after_id: str | None = None, exclude_actor: str | None = None) -> list[dict[str, Any]]:
     pool = get_pool()
     async with pool.acquire() as conn, conn.transaction():
         await conn.execute(
@@ -203,9 +205,12 @@ async def list_pending_handoffs(*, project_id: str, unit_id: str | None = None) 
             FROM handoffs
             WHERE project_id=$1 AND status='pending' AND expires_at > now() AND handoff_version=1 AND NOT continuity_managed
               AND ($2::text IS NULL OR unit_id=$2)
-            ORDER BY created_at DESC
+              AND ($3::uuid IS NULL OR (created_at,id) < (
+                  SELECT created_at,id FROM handoffs WHERE id=$3::uuid AND project_id=$1))
+              AND ($4::text IS NULL OR from_user<>$4)
+            ORDER BY created_at DESC,id DESC LIMIT $5
             """,
-            project_id, unit_id,
+            project_id, unit_id, after_id, exclude_actor, limit,
         )
     return [dict(row) for row in rows]
 
@@ -228,7 +233,7 @@ async def claim_handoff(
             RETURNING id, project_id, unit_id, phase_attempt_id, phase_id, from_user,
                       result_status, classification, task_summary, passed_checks, artifacts_produced, handoff_note,
                       task_envelope, result_envelope, context_digest, raw_output,
-                      lock_snapshot_digest, envelope_digest, claimed_by, claimed_at, expires_at
+                      lock_snapshot_digest, envelope_digest, compatibility_digest, claimed_by, claimed_at, expires_at
             """,
             handoff_id, claimed_by, project_id,
         )
@@ -271,7 +276,7 @@ async def claim_handoff_lease(
                 SELECT id, project_id, unit_id, phase_attempt_id, phase_id, from_user,
                        result_status, classification, task_summary, passed_checks, artifacts_produced, handoff_note,
                        task_envelope, result_envelope, context_digest, raw_output,
-                       lock_snapshot_digest, envelope_digest, claimed_by, claimed_at,
+                       lock_snapshot_digest, envelope_digest, compatibility_digest, claimed_by, claimed_at,
                        claim_lease_expires_at, claim_generation, expires_at,
                        handoff_version, recipient_user_id, continuation, continuation_digest, payload_digest
                 FROM handoffs WHERE id=$1::uuid
@@ -315,7 +320,7 @@ async def claim_handoff_lease(
             RETURNING id, project_id, unit_id, phase_attempt_id, phase_id, from_user,
                       result_status, classification, task_summary, passed_checks, artifacts_produced, handoff_note,
                       task_envelope, result_envelope, context_digest, raw_output,
-                      lock_snapshot_digest, envelope_digest, claimed_by, claimed_at,
+                      lock_snapshot_digest, envelope_digest, compatibility_digest, claimed_by, claimed_at,
                       claim_lease_expires_at, claim_generation, expires_at,
                       handoff_version, recipient_user_id, continuation, continuation_digest, payload_digest
             """,
@@ -336,7 +341,7 @@ async def get_claimed_handoff(
             SELECT id, project_id, unit_id, phase_attempt_id, phase_id, from_user,
                    result_status, classification, task_summary, passed_checks, artifacts_produced, handoff_note,
                    task_envelope, result_envelope, context_digest, raw_output,
-                   lock_snapshot_digest, envelope_digest, claimed_by, claimed_at,
+                   lock_snapshot_digest, envelope_digest, compatibility_digest, claimed_by, claimed_at,
                    claim_lease_expires_at, claim_generation, expires_at,
                    handoff_version, recipient_user_id, continuation, continuation_digest, payload_digest
             FROM handoffs

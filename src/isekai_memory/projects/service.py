@@ -35,13 +35,18 @@ async def access(project_id, actor):
 
 
 async def bind(principal, tool_name, arguments):
-    """Only an explicitly issued 'projects' token can span assigned projects. Other token behavior is unchanged."""
-    if principal.local or "projects" not in principal.scopes or tool_name == "memory_project_list":
+    """Registered projects use current membership for every credential type."""
+    if principal.local or tool_name == "memory_project_list":
         return principal
     project_id = arguments.get("project_id")
     if not isinstance(project_id, str):
         return principal
+    multiple = "projects" in principal.scopes
+    if not multiple and project_id != principal.project_id:
+        return principal  # authorize_tool rejects cross-project scoped tokens.
     row, role = await access(project_id, principal.user_id)
+    if row is None and not multiple:
+        return principal  # Pre-directory projects retain their scoped-token contract.
     if principal.provider in {"entra", "github"}:
         organization = row["organization_id"] if row else arguments.get("organization_id")
         if organization != principal.organization_id or (
@@ -95,6 +100,9 @@ def validate_git(args):
 
 def validate_metadata(args):
     validate_git(args)
+    kind = args.get("source_kind", "git" if args.get("git_url") else "unknown")
+    if kind not in {"git", "directory", "unknown"} or (args.get("git_url") and kind != "git"):
+        raise fail("Git clone coordinates require a Git source", "MEM-PROJECT-0002", 400)
     setup = args["setup"]
     if set(setup) != {"schema_version", "config", "artifacts", "digest"} or setup["schema_version"] != 1:
         raise fail("Unsupported setup manifest", "MEM-PROJECT-0002", 400)
@@ -137,7 +145,7 @@ async def list_projects(args, principal):
     scope = None if principal.local or "projects" in principal.scopes else principal.project_id
     async with get_pool().acquire() as conn:
         rows = await conn.fetch(
-            """SELECT p.project_id,p.organization_id,p.name,p.git_url,p.git_ref,p.owner_id,p.revision,p.updated_at,
+            """SELECT p.project_id,p.organization_id,p.name,p.git_url,p.git_ref,p.source_kind,p.owner_id,p.revision,p.updated_at,
             CASE WHEN p.owner_id=$1 THEN 'owner' ELSE m.role END AS role
             FROM memory_projects p LEFT JOIN memory_project_members m ON m.project_id=p.project_id AND m.user_id=$1
             WHERE (p.owner_id=$1 OR m.user_id IS NOT NULL) AND ($2::text IS NULL OR p.project_id=$2)
@@ -177,7 +185,9 @@ async def register(args, principal):
             raise fail()
         if row is None:
             await require_unclaimed_or_admin(conn, principal, args["project_id"])
-        fields = ("organization_id", "name", "git_url", "git_ref", "setup")
+        args.setdefault("source_kind", "git" if args["git_url"] else (row["source_kind"] if row else "unknown"))
+        validate_metadata(args)
+        fields = ("organization_id", "name", "git_url", "git_ref", "setup", "source_kind")
         if row and all(row[key] == args[key] for key in fields):
             return jsonable_encoder(dict(row))
         revision = row["revision"] if row else 0
@@ -185,15 +195,15 @@ async def register(args, principal):
             raise fail("Project changed; reload before publishing", "MEM-PROJECT-CONFLICT", 409)
         if row:
             row = await conn.fetchrow(
-                """UPDATE memory_projects SET organization_id=$2,name=$3,git_url=$4,git_ref=$5,setup=$6,
+                """UPDATE memory_projects SET organization_id=$2,name=$3,git_url=$4,git_ref=$5,setup=$6,source_kind=$7,
                     revision=revision+1,updated_at=now() WHERE project_id=$1 RETURNING *""",
                 args["project_id"],
                 *(args[k] for k in fields),
             )
         else:
             row = await conn.fetchrow(
-                """INSERT INTO memory_projects(project_id,organization_id,name,git_url,git_ref,setup,owner_id,revision)
-                    VALUES($1,$2,$3,$4,$5,$6,$7,1) RETURNING *""",
+                """INSERT INTO memory_projects(project_id,organization_id,name,git_url,git_ref,setup,source_kind,owner_id,revision)
+                    VALUES($1,$2,$3,$4,$5,$6,$7,$8,1) RETURNING *""",
                 args["project_id"],
                 *(args[k] for k in fields),
                 principal.user_id,

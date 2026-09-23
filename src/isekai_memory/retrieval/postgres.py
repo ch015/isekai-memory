@@ -15,29 +15,32 @@ _VISIBLE = """
     project_id=$1 AND status='active'
     AND (valid_from IS NULL OR valid_from <= now()) AND (expires_at IS NULL OR expires_at > now())
     AND classification=ANY($2::text[]) AND ($3::text IS NULL OR kind=$3)
-    AND ($4::text IS NULL OR source_lock_digest=$4)
+    AND (($4::text IS NULL AND $5::text IS NULL) OR source_lock_digest=$4 OR
+        ($5::text IS NOT NULL AND EXISTS (SELECT 1 FROM handoffs h
+            WHERE h.id=memory_experiences.source_handoff_id AND h.project_id=memory_experiences.project_id
+            AND h.payload_digest=memory_experiences.source_payload_digest AND h.compatibility_digest=$5)))
 """
 _MATCH = """
-    search_document @@ plainto_tsquery('simple', $5) OR NOT EXISTS (
-        SELECT 1 FROM unnest($6::text[]) AS term WHERE strpos(search_text, term)=0
+    search_document @@ plainto_tsquery('simple', $6) OR NOT EXISTS (
+        SELECT 1 FROM unnest($7::text[]) AS term WHERE strpos(search_text, term)=0
     )
 """
 
 
 def _scope(request: RetrievalRequest) -> tuple:
-    return request.project_id, list(request.classifications), request.kind, request.source_lock_digest
+    return request.project_id, list(request.classifications), request.kind, request.source_lock_digest, request.compatibility_digest
 
 
 class PostgresLexical:
     name = "postgres_lexical"
     capabilities = frozenset({"lexical", "substring", "prefiltered", "transactional"})
-    _rank = "ts_rank_cd(search_document, plainto_tsquery('simple', $5))"
+    _rank = "ts_rank_cd(search_document, plainto_tsquery('simple', $6))"
 
     async def candidates(self, conn: asyncpg.Connection, request: RetrievalRequest) -> list[Candidate]:
         rows = await conn.fetch(
-            f"SELECT id, {self._rank} + CASE WHEN strpos(search_text,$5)>0 THEN 0.05 ELSE 0 END AS score "
+            f"SELECT id, {self._rank} + CASE WHEN strpos(search_text,$6)>0 THEN 0.05 ELSE 0 END AS score "
             f"FROM memory_experiences WHERE {_VISIBLE} AND ({_MATCH}) "
-            "ORDER BY score DESC,updated_at DESC,id DESC LIMIT $7",
+            "ORDER BY score DESC,updated_at DESC,id DESC LIMIT $8",
             *_scope(request),
             request.query,
             list(request.terms),
@@ -53,7 +56,7 @@ class PostgresWeightedLexical(PostgresLexical):
     _rank = """ts_rank_cd(
         setweight(to_tsvector('simple',title),'A') ||
         setweight(to_tsvector('simple',array_to_string(tags,' ')),'B') ||
-        setweight(to_tsvector('simple',content),'D'), plainto_tsquery('simple',$5))"""
+        setweight(to_tsvector('simple',content),'D'), plainto_tsquery('simple',$6))"""
 
 
 _PROVIDERS: dict[str, RetrievalProvider] = {
@@ -71,10 +74,15 @@ async def fetch_rows(request: RetrievalRequest, strategy: str) -> list[dict]:
         for candidate in candidates[: request.limit]:
             if math.isfinite(candidate.score):
                 scores.setdefault(candidate.memory_id, candidate.score)
+        portable = (
+            ", (SELECT h.compatibility_digest FROM handoffs h WHERE h.id=memory_experiences.source_handoff_id "
+            "AND h.project_id=memory_experiences.project_id AND h.payload_digest=memory_experiences.source_payload_digest) "
+            "AS compatibility_digest " if request.compatibility_digest else ""
+        )
         rows = await conn.fetch(
             "SELECT id,project_id,title,content,tags,kind,classification,source_handoff_id,source_lock_digest,"
-            "source_payload_digest,version,revision_root_id,revision_number,is_correction "
-            f"FROM memory_experiences WHERE {_VISIBLE} AND id=ANY($5::uuid[])",
+            "source_payload_digest,version,revision_root_id,revision_number,is_correction " + portable +
+            f"FROM memory_experiences WHERE {_VISIBLE} AND id=ANY($6::uuid[])",
             *_scope(request),
             list(scores),
         )

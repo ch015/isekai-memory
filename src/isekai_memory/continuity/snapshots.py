@@ -40,6 +40,8 @@ def validate(snapshot, package, body):
         seen.add(path.casefold())
         # Null means an explicit deletion relative to the pinned commit.
         if file["content_base64"] is None:
+            if package["schema_version"] == 2:
+                raise invalid("Directory snapshots cannot contain Git-relative deletions")
             if file["digest"] is not None or file.get("executable", False):
                 raise invalid("Deleted files have no content digest")
             continue

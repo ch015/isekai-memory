@@ -82,7 +82,7 @@ services:
         condition: service_completed_successfully
         restart: true
     ports:
-      - "0.0.0.0:${ISEKAI_LOCAL_PORT:-8100}:8100"
+      - "${ISEKAI_LOCAL_BIND_HOST:-127.0.0.1}:${ISEKAI_LOCAL_PORT:-8100}:8100"
     restart: unless-stopped
     init: true
     read_only: true

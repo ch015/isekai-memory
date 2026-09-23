@@ -133,7 +133,7 @@ async def test_tools_list_returns_cacheable_result() -> None:
     assert result["resultType"] == "complete"
     assert result["ttlMs"] == 3_600_000
     assert result["cacheScope"] == "public"
-    assert len(result["tools"]) == 86
+    assert len(result["tools"]) == 89
 
 
 @pytest.mark.asyncio

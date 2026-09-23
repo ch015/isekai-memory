@@ -47,6 +47,9 @@ class ToolDispatcher:
         from isekai_memory.projects.service import bind
         principal = await bind(principal, tool_name, arguments)
         authorize_tool(principal, tool_name, arguments)
+        from isekai_memory.projects.records import HANDLERS as record_handlers
+        if tool_name in record_handlers:
+            return await record_handlers[tool_name](arguments, principal)
         if tool_name in project_handlers:
             return await project_handlers[tool_name](arguments, principal)
 
@@ -135,6 +138,8 @@ class ToolDispatcher:
             return await collaboration.renew(arguments, actor_id=principal.user_id, settings=self.settings)
         if tool_name == "memory_handoff_push":
             return await push_handoff(arguments, settings=self.settings, from_user=principal.user_id)
+        if tool_name == "memory_handoff_list":
+            return await list_handoffs(arguments, actor_id=principal.user_id)
         if tool_name == "memory_handoff_pull":
             return await pull_handoff(
                 arguments,
@@ -156,13 +161,7 @@ class ToolDispatcher:
             if tool_name == "memory_handoff_claim":
                 keyword_arguments["settings"] = self.settings
             return await recoverable_handler(arguments, **keyword_arguments)
-        simple_handlers = {
-            "memory_handoff_list": list_handoffs,
-        }
-        handler = simple_handlers.get(tool_name)
-        if handler is None:
-            raise MemoryToolError(f"Tool '{tool_name}' is not recognized", code=-32602, data={"error_code": "MEM-TOOL-0001"})
-        return await handler(arguments)
+        raise MemoryToolError(f"Tool '{tool_name}' is not recognized", code=-32602, data={"error_code": "MEM-TOOL-0001"})
 
 
 async def dispatch_tool(

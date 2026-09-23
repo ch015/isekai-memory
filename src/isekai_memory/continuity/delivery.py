@@ -26,6 +26,8 @@ LEGACY_FIELDS = ("project_id", "unit_id", "phase_attempt_id", "phase_id", "from_
 
 def handoff_payload(row):
     result = {key: row[key] for key in LEGACY_FIELDS}
+    if row.get("compatibility_digest"):
+        result["compatibility_digest"] = row["compatibility_digest"]
     if row["handoff_version"] == 2:
         result.update({key: row[key] for key in ("handoff_version", "recipient_user_id", "continuation", "continuation_digest")})
     return result

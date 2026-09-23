@@ -9,6 +9,7 @@ from typing import Any
 
 from isekai_memory.continuity.tools import CONTINUITY_SCOPES
 from isekai_memory.handoff.tools import COLLABORATION_SCOPES
+from isekai_memory.projects.records_tools import RECORD_SCOPES
 from isekai_memory.projects.tools import PROJECT_SCOPES
 from isekai_memory.server.errors import MemoryToolError
 from isekai_memory.store import queries
@@ -130,6 +131,8 @@ _TOOL_SCOPES.update(CONTINUITY_SCOPES)
 _PROJECT_SCOPED_TOOLS.update(CONTINUITY_SCOPES)
 _TOOL_SCOPES.update(PROJECT_SCOPES)
 _PROJECT_SCOPED_TOOLS.update(set(PROJECT_SCOPES) - {"memory_project_list"})
+_TOOL_SCOPES.update(RECORD_SCOPES)
+_PROJECT_SCOPED_TOOLS.update(RECORD_SCOPES)
 
 
 def authorize_tool(principal: Principal, tool_name: str, arguments: dict[str, Any]) -> None:

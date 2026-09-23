@@ -1,10 +1,19 @@
 # ISEKAI Memory
 
-Work Handoff, governed Project Experience, and Repository Registry for ISEKAI. This repository implements the standalone Memory service. Core-side handoff acquisition and context injection are implemented in the `isekai-core` repository (`src/isekai/memory/`). Experience proposal, review, correction, history, forgetting and retrieval are explicit server tools. Core can separately opt in to bounded experience recall; it remains disabled by default.
+Work Handoff, governed Project Experience, and Repository Registry for ISEKAI. This repository implements the standalone Memory service. ADE's embedded engine implements handoff acquisition and context injection in `engine/src/isekai/memory/`. Experience proposal, review, correction, history, forgetting and retrieval are explicit server tools. Clients can separately opt in to bounded experience recall; it remains disabled by default.
 
 Artifact distribution has moved to Git Releases — Foundation and Preset archives are built in CI, published to each repository's releases, and installed locally via `isekai init --foundation <path> --preset <path>`. The Memory server no longer stores or serves artifact binaries.
 
+Current schema: **020**. ADE's embedded engine is the active client for these improvements;
+the standalone `isekai-core` repository is not required by ADE.
+See [project materials and history](docs/project-sharing.md) and [multi-user operation and upgrade](docs/multiuser-operation.md)
+for membership, cross-PC handoffs, file-sharing limits and deployment order.
+
 ## Implemented scope
+
+- Explicit Git/directory/unknown project source metadata, independent of an optional clone URL
+- Project-member materials, results and activity records with immutable IDs, citations, bounded search and deletion
+- Opt-in non-Git file snapshots through the existing continuity policy and isolated preparation
 
 - Correlated Task/Result handoff push, pending list, compatibility pull, and recoverable claim leases
 - Multi-user available/claimed/sent inboxes, delivery status and fenced absolute-deadline lease renewal
@@ -13,7 +22,7 @@ Artifact distribution has moved to Git Releases — Foundation and Preset archiv
 - Stored workspace checkpoints and opt-in Core capture/isolated preparation for unexpected departure
 - Repository registry for tracking Foundation/Preset release repositories (config-based, future UI administration planned)
 - Project-scoped tokens with `read`, `write`, and `admin` scopes
-- Optional GitHub OAuth/PKCE login with a dedicated server-side OAuth app, immutable user allowlist and shared project roles ([setup](docs/github-login.md), current schema 016; live-app acceptance pending)
+- Optional GitHub OAuth/PKCE login with a dedicated server-side OAuth app, immutable user allowlist and shared project roles ([setup](docs/github-login.md), introduced in schema 016; live-app acceptance pending)
 - Optional single-tenant Entra OIDC API authentication, stable user bindings and project membership ([setup](docs/entra-oidc.md), introduced in schema 015; live-tenant acceptance pending)
 - MCP 2026-07-28 over stdio and stateless Streamable HTTP JSON-RPC at `POST /mcp`
 - PostgreSQL persistence and Alembic migrations
@@ -49,8 +58,8 @@ docker compose up -d
 
 This starts PostgreSQL, applies migrations, then serves Memory at
 `http://127.0.0.1:8100/mcp`. Database data survives `./scripts/local.sh down`.
-Port 8100 binds to all IPv4 interfaces: another LAN PC can use `http://<server-LAN-IP>:8100/mcp`.
-Restrict host firewall access to trusted LAN clients; token authentication is still required.
+Port 8100 binds to loopback by default. For team access, use an HTTPS proxy or encrypted tunnel;
+`ISEKAI_LOCAL_BIND_HOST` explicitly selects a different interface when needed.
 Existing token authentication remains enabled; issue keys explicitly with
 `./scripts/local.sh token <project-id> <user-id> [read,write|admin]`.
 See [local Docker operations](docs/local-docker.md) for ports, credentials, logs and TUI connection.

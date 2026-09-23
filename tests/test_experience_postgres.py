@@ -25,7 +25,7 @@ from isekai_memory.server.auth import hash_token
 from isekai_memory.server.http_handler import create_app
 from isekai_memory.server.protocol import PROTOCOL_VERSION
 from isekai_memory.store import queries
-from isekai_memory.store.database import close_pool, health_check, init_pool
+from isekai_memory.store.database import EXPECTED_SCHEMA_REVISION, close_pool, health_check, init_pool
 from tests.helpers import handoff_arguments
 
 pytestmark = pytest.mark.skipif(not os.environ.get("MEMORY_TEST_DATABASE_URL"), reason="requires disposable PostgreSQL")
@@ -91,7 +91,7 @@ async def harness():
     settings = Settings(database_url=os.environ["MEMORY_TEST_DATABASE_URL"], db_pool_min=1, db_pool_max=6)
     pool = await init_pool(settings)
     try:
-        assert (await health_check())["schema_revision"] == "017"
+        assert (await health_check())["schema_revision"] == EXPECTED_SCHEMA_REVISION
         project = "experience-test-" + uuid4().hex
         tokens = {}
         for role, scopes in {"admin": ["admin"], "admin2": ["admin"], "writer": ["read", "write"], "read": ["read"], "other": ["admin"]}.items():

@@ -17,6 +17,7 @@ from isekai_memory.generation.tools import GENERATION_TOOLS
 from isekai_memory.handoff.continuation import RECIPIENT
 from isekai_memory.handoff.continuation import SCHEMA as CONTINUATION_SCHEMA
 from isekai_memory.handoff.tools import COLLABORATION_TOOLS
+from isekai_memory.projects.records_tools import RECORD_TOOLS
 from isekai_memory.projects.tools import PROJECT_TOOLS
 from isekai_memory.skills.tools import SKILL_TOOLS
 from isekai_memory.team.tools import TEAM_TOOLS
@@ -126,6 +127,7 @@ TOOLS: list[dict[str, Any]] = [
                 "raw_output": {"type": "string"},
                 "handoff_note": {"type": "string", "maxLength": 16384},
                 "lock_snapshot_digest": DIGEST, "envelope_digest": DIGEST,
+                "compatibility_digest": DIGEST,
                 "recipient_user_id": RECIPIENT, "continuation": CONTINUATION_SCHEMA,
             },
             "additionalProperties": False,
@@ -136,7 +138,12 @@ TOOLS: list[dict[str, Any]] = [
         "description": "List non-expired pending version-1 handoffs. Use inbox for addressed or continuation handoffs.",
         "inputSchema": {
             "type": "object", "required": ["project_id"],
-            "properties": {"project_id": SHORT_ID, "unit_id": SHORT_ID},
+            "properties": {
+                "project_id": SHORT_ID, "unit_id": SHORT_ID,
+                "limit": {"type": "integer", "minimum": 1, "maximum": 100},
+                "after_id": {"type": "string", "format": "uuid"},
+                "exclude_own": {"type": "boolean"},
+            },
             "additionalProperties": False,
         },
     },
@@ -215,6 +222,7 @@ TOOLS.extend(TEAM_TOOLS)
 TOOLS.extend(COLLABORATION_TOOLS)
 TOOLS.extend(CONTINUITY_TOOLS)
 TOOLS.extend(PROJECT_TOOLS)
+TOOLS.extend(RECORD_TOOLS)
 
 TOOL_MAP = {tool["name"]: tool for tool in TOOLS}
 TOOL_NAMES = set(TOOL_MAP)

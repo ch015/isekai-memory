@@ -35,6 +35,7 @@ async def search(arguments: dict, *, strategy: str = "postgres_lexical") -> dict
         kind=arguments.get("kind"),
         source_lock_digest=arguments.get("source_lock_digest"),
         limit=limit + 1,
+        compatibility_digest=arguments.get("compatibility_digest"),
     )
     try:
         # Includes pool wait, provider work and hydration, not only SQL execution.
@@ -82,5 +83,5 @@ async def search(arguments: dict, *, strategy: str = "postgres_lexical") -> dict
         "max_chars": budget,
         "strategy": strategy,
         "usage": "reference_only",
-        "citation_schema_version": 1,
+        "citation_schema_version": 2 if request.compatibility_digest else 1,
     }

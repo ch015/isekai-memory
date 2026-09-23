@@ -43,6 +43,12 @@ def attach(row: dict, *, excerpt_chars: int = 512) -> dict:
         ),
         "excerpt_digest": digest(item["excerpt"]),
     }
-    citation["binding_digest"] = digest(canonical({**{key: item[key] for key in BINDING_FIELDS}, **citation}))
+    binding = {key: item[key] for key in BINDING_FIELDS}
+    if item.get("compatibility_digest") is not None:
+        binding["compatibility_digest"] = item["compatibility_digest"]
+        citation["schema_version"] = 2
+    else:
+        item.pop("compatibility_digest", None)
+    citation["binding_digest"] = digest(canonical({**binding, **citation}))
     item["citation"] = citation
     return item
