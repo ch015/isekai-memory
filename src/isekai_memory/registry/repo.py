@@ -1,9 +1,9 @@
-"""Repository registry — list and check updates for Git release repositories.
+"""Repository registry — read configured metadata for Git release repositories.
 
 Repositories are configured via the server config file (``repos`` key).
 Each entry tracks a Git repository URL, the artifact kind it provides,
 and its artifact identity.  This module exposes MCP tools that let callers
-discover registered repositories and check for newer releases.
+discover registered repositories. Remote release polling is not implemented.
 
 Future: UI-based repository administration will replace direct config editing.
 """
@@ -91,9 +91,10 @@ async def check_repo_updates(
     *,
     settings: Settings | None = None,
 ) -> list[dict[str, Any]]:
-    """MCP tool: memory_repo_check_updates — check for newer releases.
+    """MCP tool: memory_repo_check_updates — return configured repository metadata.
 
-    This is a local metadata check against the configured ``current_version``.
+    ``current_version`` is a configured value, not a remotely verified release.
+    ``latest_version`` and ``update_available`` are always null.
     Actual Git/GitHub API integration for automatic release polling is a
     future enhancement.  For now, the tool returns the configured repo state
     so the user can compare against their installed versions.

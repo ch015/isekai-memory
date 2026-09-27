@@ -10,7 +10,8 @@ Optional soft alerts remain off by default.
 Schema 012 adds usage policies, actor-owned run sessions and immutable revision
 receipts without modifying M8/presence tables. Seven tools bring the catalog to
 80 at that milestone: memory_usage_policy_get/set, register, report, summary, list and prune.
-The current catalog is 82 with schema 013 collaboration events.
+Schema 013 collaboration events later brought that baseline to 82 tools. The current
+server requires schema **020** and exposes **89 tools**; see the [current catalog](mcp-tool-catalog.md).
 The token_usage capability means these APIs exist, not that collection is enabled.
 
 Collection needs both project usage policy enabled and Core's explicit

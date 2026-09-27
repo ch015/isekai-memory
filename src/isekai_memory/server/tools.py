@@ -76,9 +76,8 @@ TOOLS: list[dict[str, Any]] = [
     {
         "name": "memory_repo_list",
         "description": (
-            "List registered artifact repositories. "
-            "Each entry includes the repository URL, tracked artifact kinds, "
-            "and the latest known release version."
+            "List configured artifact repositories with URL, artifact kind, "
+            "identity and optional current_version. Does not query remote releases."
         ),
         "inputSchema": {
             "type": "object",
@@ -91,9 +90,9 @@ TOOLS: list[dict[str, Any]] = [
     {
         "name": "memory_repo_check_updates",
         "description": (
-            "Check registered repositories for newer artifact releases. "
-            "Returns a summary of available updates per repository. "
-            "The user decides whether to apply each update."
+            "Return configured repository metadata and current_version. "
+            "Remote release polling is not implemented; latest_version and "
+            "update_available are null, so this does not determine whether updates exist."
         ),
         "inputSchema": {
             "type": "object",

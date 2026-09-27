@@ -1,7 +1,8 @@
 # M9-1 collaboration read model
 
 Historical slice: implemented locally on 2026-09-11 at schema `010`.
-The current release is schema `013`; see [M9 acceptance](memory-m9-acceptance.md).
+M9 acceptance used schema `013`; see its [historical results](memory-m9-acceptance.md).
+The current server requires schema `020` and exposes 89 tools; see the [current catalog](mcp-tool-catalog.md).
 This document specifies the read model, not automatic enabling of a presence/token collector.
 
 ## Calls

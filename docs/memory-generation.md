@@ -149,8 +149,9 @@ exports remain under their independent retention policies.
 
 ## Migration and validation
 
-M4 introduced revision `006`; the current server also requires M5's `007` (run
-`alembic upgrade head`). Downgrade from `006` to `005` is allowed only
+M4 introduced revision `006` and M5 added `007`. The current server requires revision
+`020`; run `alembic upgrade head` before startup (see the [current server guide](../README.md)).
+The following downgrade rule describes the M4 migration: downgrade from `006` to `005` is allowed only
 when **no generation job receipts exist**; otherwise the entire downgrade fails
 transactionally. This avoids silently discarding work, source coverage and audit
 history. An operator must explicitly plan any export/retention change first.

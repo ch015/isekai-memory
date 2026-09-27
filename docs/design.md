@@ -106,13 +106,16 @@ A separate `payload_digest` covers the complete handoff submission. Retry of the
 
 ## 6. Database and lifecycle
 
-Alembic revision `008` is required. `/ready` verifies:
+The current server requires Alembic revision `020`. `/ready` verifies:
 
 - database connectivity
-- `alembic_version == 008`
-- artifacts, artifact_policies, handoffs, handoff_claim_receipts, access_tokens, memory_experiences, memory_experience_events, memory_experience_suppressions, memory_generation_jobs, memory_generation_attempts and memory_summary_snapshots tables
-- memory_skills, memory_skill_revisions, memory_skill_sources and memory_skill_events tables
-- memory_asset_grants, memory_knowledge_documents, memory_knowledge_events, memory_skill_imports and memory_asset_feedback tables
+- `alembic_version == 020`
+- the required handoff, identity/project membership, experience/generation, Skill/team-asset,
+  continuity, presence, usage and collaboration/project-record tables, including retained legacy tables
+
+The exact required table inventory and revision are maintained in
+[`store/database.py`](../src/isekai_memory/store/database.py). The migration notes below describe
+the versions that introduced each feature, not the current readiness target.
 
 Migrations are explicit and must run before server startup:
 
@@ -136,9 +139,9 @@ Note: the `artifacts` and `artifact_policies` tables remain in the database sche
 
 ## 7. Tool boundary
 
-Forty-three tools are advertised: two repository registry tools, seven handoff tools,
-eight experience tools, four generation/summary tools, eight Skill tools and fourteen
-team-asset tools. Every request is validated
+The current server advertises **89 tools**. The [MCP tool catalog](mcp-tool-catalog.md)
+lists every tool and its minimum scope; the earlier M6 baseline contained 43 tools.
+Every request is validated
 at runtime against the JSON Schema returned by `tools/list`. Missing/extra/invalid
 fields are controlled invalid-parameter errors rather than internal failures.
 Validity date-time validation is provided without optional format dependencies and

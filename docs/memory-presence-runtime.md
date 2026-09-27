@@ -1,7 +1,9 @@
 # M9 관측 API와 Core worker 연결
 
 2026-09-14 추가: [실제 Core controller lifecycle](memory-controller-runtime.md)을 연결하고 검증했다.
-현재 전체 스키마는 013, 도구는 82개다. 최종 상태는 [M9 검증표](memory-m9-acceptance.md)를 따른다. 아래 011/73개 및 controller 미구현 설명은 최초 worker 단계의 기록이다.
+당시 M9 검증은 schema 013/82개 도구 기준이며 [M9 검증표](memory-m9-acceptance.md)에 남아 있다.
+현재 서버는 schema **020**과 **89개 도구**를 사용한다([현행 목록](mcp-tool-catalog.md)).
+아래 011/73개 및 controller 미구현 설명은 최초 worker 단계의 기록이다.
 
 상태: 로컬 구현·검증, 2026-09-11. [idle 의미·판정 설계](memory-presence-idle.md)를 구현하는
 첫 수집 계층이다. M9 전체 완료나 실제 CLI 계정 검증을 뜻하지 않는다.

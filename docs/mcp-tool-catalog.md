@@ -75,8 +75,8 @@ eligibility and revision/fence guards still apply. Inputs come from each tool in
 | `memory_project_record_remove` | write | Author or project owner: erase a record's content and remove it from search; preserve its idempotency tombstone. |
 | `memory_project_register` | write | Register a project or replace its metadata with an exact revision guard. Does not create a Git repository. |
 | `memory_read` | read | Read one approved, unexpired project experience as reference data with source attribution. |
-| `memory_repo_check_updates` | read | Check registered repositories for newer artifact releases. Returns a summary of available updates per repository. The user decides whether to apply each update. |
-| `memory_repo_list` | read | List registered artifact repositories. Each entry includes the repository URL, tracked artifact kinds, and the latest known release version. |
+| `memory_repo_check_updates` | read | Return configured repository metadata and current_version. Remote release polling is not implemented; latest_version and update_available are null, so this does not determine whether updates exist. |
+| `memory_repo_list` | read | List configured artifact repositories with URL, artifact kind, identity and optional current_version. Does not query remote releases. |
 | `memory_search` | read | Search approved, unexpired project experiences. Returns reference excerpts and provenance; never consumes a handoff. |
 | `memory_shared_read` | read | Consumer project: recheck exact grant and live asset on every read. No export, transitive sharing or cache authority. |
 | `memory_skill_export` | admin | Admin-only explicit deterministic unsigned native Skill archive; active review version and exact source Lock required. |

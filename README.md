@@ -167,7 +167,7 @@ The core/project subset is summarized below; later sections describe the other t
 | `memory_project_record_list` | read | Search member-scoped records with citations and pagination |
 | `memory_project_record_remove` | write | Author/owner deletion with a tombstone preventing late retry resurrection |
 | `memory_repo_list` | read | List registered artifact repositories |
-| `memory_repo_check_updates` | read | Check repositories for newer releases |
+| `memory_repo_check_updates` | read | Read configured repository versions; remote release polling is not implemented |
 | `memory_handoff_push` | write | Register a Task/Result handoff |
 | `memory_handoff_list` | read | List non-expired pending handoffs |
 | `memory_handoff_pull` | write | Compatibility one-shot claim (preserved for existing clients) |
@@ -296,11 +296,12 @@ before migration. No real project is enabled automatically.
 
 ### Project experience workflow
 
-Run `python -m alembic upgrade head` to apply revision `013` before starting this version.
+Run `python -m alembic upgrade head` to apply revision `020` before starting the current server.
+The following counts describe the historical M9/schema 013 baseline; the current catalog has 89 tools.
 The existing nine handoff/registry tools retain their contracts. Eight experience
 plus four generation/summary, eight Skill, fourteen team-asset and three
 collaboration tools, plus seventeen continuity, two read-only dashboard and eight
-presence tools, seven usage tools and two change-feed tools extend the catalog to 82 tools.
+presence tools, seven usage tools and two change-feed tools extended that baseline to 82 tools.
 
 The M9-1 [collaboration read model](docs/memory-collaboration-read-model.md) adds
 scoped overview/list queries and a bounded Core client without modifying leases,
