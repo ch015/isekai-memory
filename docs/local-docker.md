@@ -46,6 +46,21 @@ Docker socket이나 소스·사용자 홈 디렉터리를 컨테이너에 마운
 
 ## 빌드·운영 명령
 
+Memory 애플리케이션 이미지만 만들려면 Nunchi Asset의
+`secops-nunchi-asset/deploy/docker/asset-api/Dockerfile`을 참고한 `docker build -f ... -t ...` 방식처럼
+저장소 Dockerfile을 명시하는 스크립트를 실행한다. 이 명령은 DB·컨테이너를 시작하지 않는다.
+
+```sh
+./scripts/build-image.sh
+./scripts/build-image.sh isekai-memory:dev
+```
+
+기본 태그는 `isekai-memory:local`이다. 이미지에 비밀번호나 OAuth 비밀값을 넣지 않는다.
+실행 시에는 `.env.template`을 `.env.image`로 복사해 PostgreSQL 연결 설정을 제공하고
+마이그레이션을 먼저 적용해야 한다. `docker run --env-file .env.image` 사용 예시는 README의
+Docker 절을 따른다. Compose 전용 설정 예시는 기존 `.env.example`에 있다.
+아래 `local.sh build`는 Compose 전용 이미지 태그를 사용한다.
+
 ```sh
 ./scripts/local.sh build
 ./scripts/local.sh up

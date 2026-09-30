@@ -63,6 +63,7 @@ Port 8100 binds to loopback by default. For team access, use an HTTPS proxy or e
 Existing token authentication remains enabled; issue keys explicitly with
 `./scripts/local.sh token <project-id> <user-id> [read,write|admin]`.
 See [local Docker operations](docs/local-docker.md) for ports, credentials, logs and TUI connection.
+To build only the application image, run `./scripts/build-image.sh [image:tag]` (default `isekai-memory:local`).
 AWS deployment is intentionally separate. The requirements below apply to a host-based installation.
 
 - Python 3.11+
@@ -512,16 +513,16 @@ docker run -d --rm --name isekai-memory-pg --network isekai-memory-net \
   -e POSTGRES_USER=isekai -e POSTGRES_PASSWORD=isekai \
   -e POSTGRES_DB=isekai_memory postgres:16
 
-docker build -t isekai-memory .
+cp -n .env.template .env.image
+# Edit .env.image for the target database; keep it private.
+./scripts/build-image.sh
 
 docker run --rm --network isekai-memory-net \
-  --entrypoint alembic \
-  -e ISEKAI_MEMORY_DATABASE_URL='postgresql://isekai:isekai@isekai-memory-pg:5432/isekai_memory' \
-  isekai-memory upgrade head
+  --env-file .env.image --entrypoint alembic \
+  isekai-memory:local upgrade head
 
 docker run --rm -p 8100:8100 --network isekai-memory-net \
-  -e ISEKAI_MEMORY_DATABASE_URL='postgresql://isekai:isekai@isekai-memory-pg:5432/isekai_memory' \
-  isekai-memory
+  --env-file .env.image isekai-memory:local
 ```
 
 Kubernetes manifests are intentionally not included. Deployment templates and values are maintained separately.
