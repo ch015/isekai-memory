@@ -7,7 +7,7 @@ ADE owns its embedded client; standalone Core installation is not an ADE prerequ
 
 ## 1. Scope
 
-`isekai-memory` is a standalone PostgreSQL-backed Work Handoff, Project Experience and Repository Registry MCP server. Handoff (Phase 1–6 recoverable-handoff server track) is implemented here. Core-side automatic acquisition and context injection are implemented in the `isekai-core` repository (`src/isekai/memory/`). Experience APIs are explicit server tools; M3 adds separately opt-in Core recall, disabled by default.
+`isekai-memory` is a standalone PostgreSQL/SQLite-backed Work Handoff, Project Experience and Repository Registry MCP server. Handoff (Phase 1–6 recoverable-handoff server track) is implemented here. Core-side automatic acquisition and context injection are implemented in ADE’s embedded engine (`engine/src/isekai/memory/`). Experience APIs are explicit server tools; M3 adds separately opt-in Core recall, disabled by default.
 
 Project Experience adds source-backed pending proposals, admin review and bounded
 lexical search/read. See [memory-expansion.md](memory-expansion.md) for its detailed
@@ -98,9 +98,9 @@ A handoff stores one Core Task Envelope and correlated Result Envelope. Push val
 
 Actor identity comes from the principal. `expires_at` is a timezone-aware DB value. Listing marks elapsed pending rows expired and excludes them. The compatibility `memory_handoff_pull` tool preserves the original one-shot, project-bound conditional transition.
 
-Recoverable consumers use `memory_handoff_claim`, `memory_handoff_get_claimed`, `memory_handoff_ack`, and `memory_handoff_nack`. The client generates and retains a unique high-entropy raw `claim_token`; the service hashes it with SHA-256 before calling persistence and stores only the digest. Claim-token schema failures use fixed redacted messages. Claim acquisition uses a PostgreSQL row lock, then reads `clock_timestamp()` after lock acquisition, and applies a monotonically increasing generation. It accepts pending rows and elapsed recoverable leases, while an active same-project/same-actor/same-token request replays the original lease without extending it. The effective lease deadline is capped by the handoff retention deadline. Get requires the same active project, actor, token digest, and unexpired lease.
+Recoverable consumers use `memory_handoff_claim`, `memory_handoff_get_claimed`, `memory_handoff_ack`, and `memory_handoff_nack`. The client generates and retains a unique high-entropy raw `claim_token`; the service hashes it with SHA-256 before calling persistence and stores only the digest. Claim-token schema failures use fixed redacted messages. Claim acquisition uses a PostgreSQL row lock or a SQLite `BEGIN IMMEDIATE` write transaction, then reads `clock_timestamp()` after lock acquisition, and applies a monotonically increasing generation. It accepts pending rows and elapsed recoverable leases, while an active same-project/same-actor/same-token request replays the original lease without extending it. The effective lease deadline is capped by the handoff retention deadline. Get requires the same active project, actor, token digest, and unexpired lease.
 
-Ack and nack require the active generation guards and are committed atomically with a digest-only receipt. Those receipts make response-loss retries idempotent without allowing an old token to mutate a replacement lease. Ack moves the handoff to `acknowledged`; nack returns it to `pending`. Nack reasons are constrained in both JSON Schema and PostgreSQL to `retryable`, `processing_failed`, `shutdown`, or `cancelled`. Lease min/default/max settings are validated as `min <= default <= max` and every request must remain within those configured bounds.
+Ack and nack require the active generation guards and are committed atomically with a digest-only receipt. Those receipts make response-loss retries idempotent without allowing an old token to mutate a replacement lease. Ack moves the handoff to `acknowledged`; nack returns it to `pending`. Nack reasons are constrained in both JSON Schema and the database to `retryable`, `processing_failed`, `shutdown`, or `cancelled`. Lease min/default/max settings are validated as `min <= default <= max` and every request must remain within those configured bounds.
 
 A separate `payload_digest` covers the complete handoff submission. Retry of the same `(project_id, phase_attempt_id)` returns the original ID/timestamps only if the payload digest matches; conflicting payloads are rejected.
 
@@ -117,7 +117,9 @@ The exact required table inventory and revision are maintained in
 [`store/database.py`](../src/isekai_memory/store/database.py). The migration notes below describe
 the versions that introduced each feature, not the current readiness target.
 
-Migrations are explicit and must run before server startup:
+PostgreSQL migrations are explicit and must run before server startup. SQLite creates its packaged schema on first use; see [local SQLite mode](local-sqlite.md).
+
+For PostgreSQL:
 
 ```bash
 ISEKAI_MEMORY_DATABASE_URL=... alembic upgrade head
@@ -151,7 +153,7 @@ MCP tool execution failures use `CallToolResult.isError=true`; JSON-RPC protocol
 
 ## 8. Deployment boundary
 
-The repository contains a production Dockerfile but no Kubernetes manifests. A later deployment repository/template owns migration jobs, ingress, certificates, service accounts, and environment-specific configuration. The application image expects a reachable, already migrated PostgreSQL database.
+The repository contains a production Dockerfile but no Kubernetes manifests. A later deployment repository/template owns migration jobs, ingress, certificates, service accounts, and environment-specific configuration. The default application image configuration expects a reachable, already migrated PostgreSQL database. SQLite mode can instead use a persistent local volume and `--sqlite FILE`.
 
 ## 9. Completion evidence
 

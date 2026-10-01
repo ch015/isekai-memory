@@ -13,6 +13,7 @@ from psycopg import sql
 pytestmark = pytest.mark.skipif(not os.environ.get("MEMORY_TEST_DATABASE_URL"), reason="requires disposable PostgreSQL")
 
 
+@pytest.mark.postgres_only
 def test_multiuser_migration_preserves_rows_and_fences_downgrade():
     url = os.environ["MEMORY_TEST_DATABASE_URL"]
     name = "sharing_migration_" + uuid4().hex

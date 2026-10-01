@@ -12,6 +12,7 @@ from isekai_memory.retrieval.citations import attach, canonical
 from isekai_memory.retrieval.contracts import RetrievalRequest
 from isekai_memory.retrieval.postgres import fetch_rows
 from isekai_memory.server.errors import MemoryToolError
+from isekai_memory.store.database import backend_name
 
 CLASSIFICATIONS = ("public", "internal", "confidential", "restricted")
 
@@ -81,7 +82,7 @@ async def search(arguments: dict, *, strategy: str = "postgres_lexical") -> dict
         "truncated": clipped or len(items) < len(rows),
         "result_chars": used,
         "max_chars": budget,
-        "strategy": strategy,
+        "strategy": strategy.replace("postgres_", "sqlite_") if backend_name() == "sqlite" else strategy,
         "usage": "reference_only",
         "citation_schema_version": 2 if request.compatibility_digest else 1,
     }

@@ -247,6 +247,7 @@ def cli(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="isekai-memory", description="ISEKAI Memory MCP Server")
     parser.add_argument("--mode", choices=["http", "stdio"], default=None)
     parser.add_argument("--config", type=Path, default=None)
+    parser.add_argument("--sqlite", type=Path, metavar="FILE", help="Use a local SQLite file; create schema on first use")
     parser.add_argument("--port", type=int, default=None)
     parser.add_argument("--host", type=str, default=None)
     admin = parser.add_mutually_exclusive_group()
@@ -267,6 +268,13 @@ def cli(argv: list[str] | None = None) -> None:
     parser.add_argument("--expires-hours", type=int, default=None)
     args = parser.parse_args(argv)
     settings = load_settings(args.config)
+    if args.sqlite is not None:
+        from urllib.parse import quote
+        values = settings.model_dump()
+        values["database_url"] = "sqlite:///" + quote(str(args.sqlite.expanduser().absolute()), safe="/")
+        if "host" not in settings.model_fields_set:
+            values["host"] = "127.0.0.1"
+        settings = Settings(**values)
     if args.bind_github_user or args.disable_github_user or args.enable_github_user:
         if args.bind_github_user and not args.user_id:
             parser.error("GitHub binding requires --user-id")

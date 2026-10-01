@@ -287,14 +287,16 @@ async def test_feedback_rejects_foreign_handoff_pending_sources_and_actor_spoofi
 
 async def test_failed_wiki_write_rolls_back_document_and_history(harness, monkeypatch):
     h = harness
-    original = asyncpg.Connection.execute
+    from isekai_memory.store.sqlite import SQLiteConnection, SQLitePool
+    connection_class = SQLiteConnection if isinstance(h.pool, SQLitePool) else asyncpg.Connection
+    original = connection_class.execute
 
     async def fail_event(self, query, *args, **kwargs):
         if "INSERT INTO memory_knowledge_events" in query:
             raise RuntimeError("simulated process failure")
         return await original(self, query, *args, **kwargs)
 
-    monkeypatch.setattr(asyncpg.Connection, "execute", fail_event)
+    monkeypatch.setattr(connection_class, "execute", fail_event)
     with pytest.raises(RuntimeError):
         await knowledge.sync({"project_id": h.project, **wiki_args()}, actor_id="admin")
     assert await h.pool.fetchval("SELECT count(*) FROM memory_knowledge_documents WHERE project_id=$1", h.project) == 0

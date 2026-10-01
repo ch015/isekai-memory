@@ -35,11 +35,12 @@ class PostgresLexical:
     name = "postgres_lexical"
     capabilities = frozenset({"lexical", "substring", "prefiltered", "transactional"})
     _rank = "ts_rank_cd(search_document, plainto_tsquery('simple', $6))"
+    _match = _MATCH
 
     async def candidates(self, conn: asyncpg.Connection, request: RetrievalRequest) -> list[Candidate]:
         rows = await conn.fetch(
             f"SELECT id, {self._rank} + CASE WHEN strpos(search_text,$6)>0 THEN 0.05 ELSE 0 END AS score "
-            f"FROM memory_experiences WHERE {_VISIBLE} AND ({_MATCH}) "
+            f"FROM memory_experiences WHERE {_VISIBLE} AND ({self._match}) "
             "ORDER BY score DESC,updated_at DESC,id DESC LIMIT $8",
             *_scope(request),
             request.query,
@@ -66,6 +67,9 @@ _PROVIDERS: dict[str, RetrievalProvider] = {
 
 async def fetch_rows(request: RetrievalRequest, strategy: str) -> list[dict]:
     provider = _PROVIDERS[strategy]  # Settings validates the allowlist; not caller-controlled.
+    if getattr(get_pool(), "backend", None) == "sqlite":
+        from isekai_memory.retrieval.sqlite import SQLiteLexical
+        provider = SQLiteLexical(weighted=strategy == "postgres_weighted_lexical")
     async with get_pool().acquire() as conn, conn.transaction(isolation="repeatable_read", readonly=True):
         await conn.execute("SET LOCAL statement_timeout = '2000ms'")
         candidates = await provider.candidates(conn, request)

@@ -3,6 +3,8 @@ import asyncio
 import secrets
 from uuid import uuid4
 
+import pytest
+
 from isekai_memory.continuity import events
 from isekai_memory.continuity.common import transaction
 from tests.test_continuity_postgres import checkpoint, configure, publish, reassignment, status
@@ -72,6 +74,7 @@ async def test_forget_notifies_receivers_without_preserving_erased_source_refere
     assert saved["checkpoint_id"] not in str(page)
 
 
+@pytest.mark.postgres_only
 async def test_head_lock_prevents_late_commit_skip_and_rollbacks_publish_nothing(harness):
     h = harness
     initial = await feed(h)

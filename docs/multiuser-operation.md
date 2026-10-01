@@ -1,6 +1,6 @@
 # 여러 사용자와 작업 공유 — schema 020
 
-Memory 서버와 PostgreSQL 하나를 공동으로 사용하고, 각 사용자는 자신의 ADE 작업 폴더와 인증을 유지한다.
+Memory 서버와 DB 하나(PostgreSQL 또는 [로컬 SQLite](local-sqlite.md))를 공동으로 사용하고, 각 사용자는 자신의 ADE 작업 폴더와 인증을 유지한다.
 로컬 State DB나 인증 파일은 공유하지 않는다. 이 변경에는 별도 파일 서버나 동기화 서비스가 필요 없다.
 
 ## 권한과 수신자

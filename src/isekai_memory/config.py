@@ -74,6 +74,11 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_bounds(self) -> Settings:
+        if self.database_url.startswith("sqlite:"):
+            from isekai_memory.store.sqlite import database_path
+            database_path(self.database_url)
+            if "host" not in self.model_fields_set:
+                self.host = "127.0.0.1"
         if self.github.enabled and not self.auth_enabled:
             raise ValueError("GitHub authentication requires auth_enabled=true")
         if self.entra.enabled and not self.auth_enabled:

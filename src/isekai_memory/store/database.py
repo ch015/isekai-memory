@@ -1,4 +1,4 @@
-"""asyncpg connection pool lifecycle management."""
+"""PostgreSQL/SQLite lifecycle and schema health checks."""
 
 from __future__ import annotations
 
@@ -7,9 +7,10 @@ import json
 import asyncpg
 
 from isekai_memory.config import Settings
+from isekai_memory.store.sqlite import SQLitePool
 
 EXPECTED_SCHEMA_REVISION = "020"
-_pool: asyncpg.Pool | None = None
+_pool: asyncpg.Pool | SQLitePool | None = None
 
 
 async def _configure_connection(connection: asyncpg.Connection) -> None:
@@ -23,10 +24,13 @@ async def _configure_connection(connection: asyncpg.Connection) -> None:
         )
 
 
-async def init_pool(settings: Settings) -> asyncpg.Pool:
+async def init_pool(settings: Settings) -> asyncpg.Pool | SQLitePool:
     """Create and cache the connection pool. Idempotent."""
     global _pool
     if _pool is not None:
+        return _pool
+    if settings.database_url.startswith("sqlite:"):
+        _pool = await SQLitePool.open(settings.database_url)
         return _pool
     _pool = await asyncpg.create_pool(
         dsn=settings.database_url,
@@ -45,16 +49,23 @@ async def close_pool() -> None:
         _pool = None
 
 
-def get_pool() -> asyncpg.Pool:
+def get_pool() -> asyncpg.Pool | SQLitePool:
     """Return the active pool. Raises if not initialized."""
     if _pool is None:
         raise RuntimeError("Database pool is not initialized. Call init_pool() first.")
     return _pool
 
 
+def backend_name() -> str:
+    return "sqlite" if isinstance(_pool, SQLitePool) else "postgresql"
+
+
 async def health_check() -> dict[str, str]:
     """Check connectivity, required tables, and the expected Alembic revision."""
     pool = get_pool()
+    if isinstance(pool, SQLitePool):
+        from isekai_memory.store.sqlite_health import health_check as sqlite_health
+        return await sqlite_health(pool, EXPECTED_SCHEMA_REVISION)
     async with pool.acquire() as conn:
         if await conn.fetchval("SELECT 1") != 1:
             raise RuntimeError("database connectivity check failed")

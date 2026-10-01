@@ -223,7 +223,10 @@ async def test_provider_executes_without_transaction_and_invalid_candidate_canno
 
         async def extract(self, source):
             async with h.pool.acquire() as conn, conn.transaction():
-                assert await conn.fetchval("SELECT pg_try_advisory_xact_lock(hashtextextended($1,0))", "isekai-experience:" + h.project)
+                if getattr(conn, "backend", None) == "sqlite":
+                    assert await conn.fetchval("SELECT 1") == 1
+                else:
+                    assert await conn.fetchval("SELECT pg_try_advisory_xact_lock(hashtextextended($1,0))", "isekai-experience:" + h.project)
             return Candidate("procedure", "malformed", "\x00invalid")
 
     assert (await worker.process(job, settings(), provider=InvalidProvider()))["error_code"] == "invalid_candidate"
@@ -318,7 +321,7 @@ async def test_expiry_during_completion_rolls_back_proposal_before_recovery(harn
 
     async def delayed_insert(*args, **kwargs):
         result = await original(*args, **kwargs)
-        await kwargs["connection"].execute("SELECT pg_sleep(1.1)")
+        await asyncio.sleep(1.1)
         return result
 
     monkeypatch.setattr(experiences, "propose", delayed_insert)

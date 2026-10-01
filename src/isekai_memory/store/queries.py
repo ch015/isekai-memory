@@ -421,7 +421,7 @@ async def acknowledge_handoff(
                 handoff_id, project_id, actor_id, claim_token_digest,
                 claim_generation, operation
             ) VALUES ($1::uuid,$2,$3,$4,$5,'acknowledged')
-            ON CONFLICT ON CONSTRAINT uq_handoff_claim_receipt DO NOTHING
+            ON CONFLICT (handoff_id, project_id, actor_id, claim_token_digest, operation) DO NOTHING
             """,
             handoff_id, project_id, claimed_by, claim_token_digest, result["claim_generation"],
         )
@@ -500,7 +500,7 @@ async def nack_handoff(
                 handoff_id, project_id, actor_id, claim_token_digest,
                 claim_generation, operation, reason_code
             ) VALUES ($1::uuid,$2,$3,$4,$5,'nacked',$6)
-            ON CONFLICT ON CONSTRAINT uq_handoff_claim_receipt DO NOTHING
+            ON CONFLICT (handoff_id, project_id, actor_id, claim_token_digest, operation) DO NOTHING
             """,
             handoff_id, project_id, claimed_by, claim_token_digest,
             result["claim_generation"], reason_code,

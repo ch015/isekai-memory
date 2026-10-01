@@ -40,8 +40,9 @@ async def snapshot(h):
     tables = ("memory_continuity_policies", "memory_checkpoints", "memory_continuity_bundles",
               "memory_continuity_deliveries", "memory_continuity_units", "memory_continuity_receipts",
               "memory_continuity_claims", "memory_continuity_events")
-    return {table: await h.pool.fetchval(
-        f"SELECT jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text) FROM {table} t WHERE project_id=$1", h.project
+    return {table: sorted(
+        [dict(row) for row in await h.pool.fetch(f"SELECT * FROM {table} WHERE project_id=$1", h.project)],
+        key=lambda row: json.dumps(row, sort_keys=True, default=str),
     ) for table in tables}
 
 
@@ -203,6 +204,7 @@ async def test_bounded_counts_mark_partial_not_exact_page_counts(harness, monkey
     assert result["coverage"] == "partial"
 
 
+@pytest.mark.postgres_only
 async def test_database_read_only_guard_and_no_mutation_advisory_lock(harness):
     h = harness
     async with overview.read_transaction() as conn:

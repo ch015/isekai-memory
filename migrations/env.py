@@ -15,6 +15,8 @@ url = (
 )
 if url.startswith("postgresql://"):
     url = "postgresql+psycopg://" + url.removeprefix("postgresql://")
+if url.startswith("sqlite:"):
+    raise RuntimeError("SQLite schemas initialize automatically. Run isekai-memory --sqlite FILE; Alembic manages PostgreSQL only.")
 
 
 def run_migrations_offline() -> None:

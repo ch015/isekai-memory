@@ -243,6 +243,7 @@ async def test_expiry_hides_active_memory_blocks_approval_and_allows_receipt_ret
     await h.call("memory_experience_propose", expired_new, role="writer", ok=False)
 
 
+@pytest.mark.postgres_only
 async def test_approval_checks_expiry_after_waiting_for_row_lock(harness):
     h = harness
     memory_id = (await h.propose())[0]["memory_id"]

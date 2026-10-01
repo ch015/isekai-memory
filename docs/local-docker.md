@@ -4,6 +4,8 @@ AWS/ECS/RDS/ECR 배포 설정이 아닌 **개인 개발 PC용 Memory 서버 + Po
 Core/TUI는 기존처럼 호스트에서 실행하고 이 Memory HTTP 주소로 연결한다.
 Docker Engine/Desktop과 Compose v2가 필요하다. 로컬 Python 설치는 필요 없다.
 
+DB 서버 없이 파일에 저장하려면 [SQLite 모드](local-sqlite.md)를 사용할 수 있다. 아래 Compose 구성은 PostgreSQL 모드다.
+
 ## 한 번에 실행
 
 isekai-memory 저장소 루트에서:

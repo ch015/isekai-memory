@@ -92,8 +92,8 @@ async def review(
             # Set status in the same statement as erasure to satisfy DB guards.
             await conn.execute(
                 "UPDATE memory_experiences SET status='forgotten', title='[forgotten]', content='[forgotten]', "
-                "tags='{}', search_text='', source='{}'::jsonb, source_handoff_id=NULL WHERE id=$1",
-                row["id"],
+                "tags=$2::text[], search_text='', source='{}'::jsonb, source_handoff_id=NULL WHERE id=$1",
+                row["id"], [],
             )
         event = await _event(conn, row, actor_id, action, after, now, parent["id"] if parent else None)
         return _receipt(memory_id, event, False)

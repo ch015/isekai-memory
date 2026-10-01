@@ -13,6 +13,7 @@ from psycopg import sql
 pytestmark = pytest.mark.skipif(not os.environ.get("MEMORY_TEST_DATABASE_URL"), reason="requires disposable PostgreSQL")
 
 
+@pytest.mark.postgres_only
 def test_optional_git_migration_preserves_legacy_rows():
     url = os.environ["MEMORY_TEST_DATABASE_URL"]
     name = "ade_migration_" + uuid4().hex

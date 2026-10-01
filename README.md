@@ -25,7 +25,7 @@ for membership, cross-PC handoffs, file-sharing limits and deployment order.
 - Optional GitHub OAuth/PKCE login with a dedicated server-side OAuth app, immutable user allowlist and shared project roles ([setup](docs/github-login.md), introduced in schema 016; live-app acceptance pending)
 - Optional single-tenant Entra OIDC API authentication, stable user bindings and project membership ([setup](docs/entra-oidc.md), introduced in schema 015; live-tenant acceptance pending)
 - MCP 2026-07-28 over stdio and stateless Streamable HTTP JSON-RPC at `POST /mcp`
-- PostgreSQL persistence and Alembic migrations
+- PostgreSQL persistence with Alembic migrations, or SQLite file mode with automatic initialization
 - Source-backed project experience proposals, admin review, and bounded lexical search/read
 - Immutable corrections, source-scoped suppression, validity windows, explicit forgetting and cursor pagination
 - Evaluated lexical providers, source-bound citations and an opt-in Core reference adapter
@@ -47,6 +47,20 @@ for local validation, supported telemetry and explicit operational exclusions.
 - **Artifact publish/fetch/resolve** — removed. Artifacts are now distributed via Git Releases.
 - **Policy upsert/delete** — commented out for future expansion. The policy engine (`registry/policy.py`) is preserved and can be re-enabled when policy-based version resolution is needed.
 
+## Local SQLite mode (no DB server)
+
+```bash
+pip install -e .
+isekai-memory --sqlite ~/.local/share/isekai-memory/memory.db --mode http
+```
+
+This creates a persistent local database on first use and serves `http://127.0.0.1:8100/mcp`.
+Use the same `--sqlite FILE` option when issuing tokens or running `--mode stdio`.
+Existing HTTP authentication, project membership and all 89 tools remain available.
+No Alembic command is needed in this mode. SQLite 3.38+ is required.
+See [SQLite setup, ADE connection and backups](docs/local-sqlite.md).
+PostgreSQL remains the default unless SQLite is explicitly selected; existing DB data is not migrated automatically.
+
 ## Requirements
 
 For local Docker deployment, Python/PostgreSQL do not need to be installed on the host:
@@ -67,9 +81,9 @@ To build only the application image, run `./scripts/build-image.sh [image:tag]` 
 AWS deployment is intentionally separate. The requirements below apply to a host-based installation.
 
 - Python 3.11+
-- PostgreSQL 15+ (validation uses PostgreSQL 16)
+- SQLite 3.38+ for file mode, or PostgreSQL 15+ for server mode
 
-## Install and migrate
+## Install and migrate PostgreSQL
 
 ```bash
 pip install -e '.[test]'
@@ -77,7 +91,7 @@ export ISEKAI_MEMORY_DATABASE_URL='postgresql://isekai:isekai@localhost:5432/ise
 alembic upgrade head
 ```
 
-The application and Alembic use `ISEKAI_MEMORY_DATABASE_URL`. `DATABASE_URL` remains an Alembic compatibility fallback. Run migrations explicitly before starting the server.
+The application and Alembic use `ISEKAI_MEMORY_DATABASE_URL`. `DATABASE_URL` remains an Alembic compatibility fallback. For PostgreSQL, run migrations explicitly before starting the server. SQLite initializes its own schema.
 
 ## Token administration
 
