@@ -7,12 +7,12 @@ CLASSIFICATION = {"enum": ["public", "internal", "confidential", "restricted"]}
 COLLABORATION_TOOLS = [
     {
         "name": "memory_handoff_inbox",
-        "description": "Read a bounded live inbox: available (including expired leases), my active claims, or sent handoffs. No claim or automatic resume.",
+        "description": "Read a bounded live inbox: available (including expired leases), my active claims, sent handoffs, or received history. No claim or automatic resume.",
         "inputSchema": {
             "type": "object", "required": ["project_id"], "additionalProperties": False,
             "properties": {
                 "project_id": PROJECT, "unit_id": PROJECT,
-                "view": {"enum": ["available", "claimed", "sent"]},
+                "view": {"enum": ["available", "claimed", "sent", "received"]},
                 "limit": {"type": "integer", "minimum": 1, "maximum": 100},
                 "cursor": {"type": "string", "minLength": 1, "maxLength": 2048},
                 "max_classification": CLASSIFICATION,

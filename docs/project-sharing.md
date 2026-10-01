@@ -6,6 +6,14 @@ ADE U87은 생성 시 Git/일반 로컬을 명시적으로 선택하고 폴더 �
 Memory는 기존 PostgreSQL 하나에서 프로젝트 구성원, 자료·결과·작업 이력과 체크포인트를 관리한다.
 별도 벡터 DB, 파일 동기화 서비스, 메시지 브로커는 추가하지 않는다. ADE 내장 엔진이 현재 클라이언트다.
 
+## ADE U104 전달 복구
+
+자동 Handoff 조회는 만료된 복구 가능 claim을 포함한다. 다른 사용자가 다시 인수할 때 기존 token·generation 검증을 유지한다.
+`memory_handoff_inbox(view="received")`는 현재 사용자가 수신 완료한 이력을 조회한다. 기존 읽기 권한·분류·프로젝트 범위와 512자 요약 한도를 유지한다.
+ADE의 작업 결과 화면은 이 API를 사용하며 Project Record로 같은 결과를 중복 저장하지 않는다.
+DB schema는 020을 유지한다. ADE와 Memory 코드를 함께 갱신해야 하며 Git 푸시만으로 운영 서버가 변경되지는 않는다.
+검증: `tests/test_delivery_recovery_postgres.py`, ADE의 HTTP 회귀·두 설치 공유·Electron 팀 공유 테스트.
+
 ## 프로젝트 종류
 
 `memory_project_register.source_kind`는 `git`, `directory`, `unknown`이다. `git_url`은 선택적인

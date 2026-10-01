@@ -48,7 +48,7 @@ eligibility and revision/fence guards still apply. Inputs come from each tool in
 | `memory_handoff_ack` | write | Idempotently acknowledge successful processing of an active claim generation. |
 | `memory_handoff_claim` | write | Acquire or replay a recoverable token-bound lease. Version-2 delivery requires accept_handoff_version=2 and the assigned recipient. |
 | `memory_handoff_get_claimed` | write | Recover an active handoff claim response using its client-held token. |
-| `memory_handoff_inbox` | read | Read a bounded live inbox: available (including expired leases), my active claims, or sent handoffs. No claim or automatic resume. |
+| `memory_handoff_inbox` | read | Read a bounded live inbox: available (including expired leases), my active claims, sent handoffs, or received history. No claim or automatic resume. |
 | `memory_handoff_list` | read | List non-expired pending version-1 handoffs. Use inbox for addressed or continuation handoffs. |
 | `memory_handoff_nack` | write | Idempotently release an active claim generation using a bounded reason code. |
 | `memory_handoff_pull` | write | Atomically claim a handoff using the compatibility one-shot operation. |

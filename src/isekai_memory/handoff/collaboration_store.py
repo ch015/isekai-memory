@@ -25,6 +25,7 @@ VIEW_FILTERS = {
     "claimed": """expires_at > $7 AND status='claimed'
         AND claimed_by=$2 AND claim_lease_expires_at > $7""",
     "sent": "from_user=$2",
+    "received": "NOT continuity_managed AND status='acknowledged' AND claimed_by=$2",
 }
 
 

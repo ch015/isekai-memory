@@ -9,7 +9,7 @@ install a Skill, fetch a repository, or automatically resume a worker.
 
 | Stage | Scope | Acceptance |
 |---|---|---|
-| M7 | Observable handoff delivery and safe lease renewal | Project-scoped available/claimed/sent inbox, metadata status, expired-lease discovery, competing-user and stale-owner tests |
+| M7 | Observable handoff delivery and safe lease renewal | Project-scoped available/claimed/sent/received inbox, metadata status, expired-lease discovery, competing-user and stale-owner tests |
 | M8 | Reproducible packages and departure recovery | Admin-configured sender-to-recipient 1:N, independent deliveries, work-unit ownership, audited reassignment, stored checkpoints and opt-in Core capture/preparation |
 | M9 | Shared user/admin TUI and timely client integration | Scoped dashboard, session reports, administrator TUI forms, Core actions, bounded polling and durable reconnect/catch-up; see [implementation plan](memory-collaboration-tui.md) |
 | M10 | Team operations | Full membership lifecycle, escalation automation, retention and operational observability; basic admin continuity policy/reassignment moved into M8 |
@@ -32,7 +32,7 @@ handoff payloads remain immutable.
 ### `memory_handoff_inbox` (read)
 
 Required: `project_id`. Optional: `view` (`available`, default; `claimed`;
-`sent`), `unit_id`, `limit` (1–100, default 20), `cursor`, and
+`sent`; `received`), `unit_id`, `limit` (1–100, default 20), `cursor`, and
 `max_classification` (default `internal`).
 
 - `available`: unexpired pending handoffs **and expired recoverable leases**.
@@ -42,6 +42,10 @@ Required: `project_id`. Optional: `view` (`available`, default; `claimed`;
   the lease. A second session for the same user does not gain that token.
 - `sent`: handoffs published by the authenticated user, including terminal and
   retention-expired delivery states, while the source row is retained.
+
+- `received`: acknowledged handoffs received by the authenticated user, while the source row is retained. Read-only history; no claim or replay.
+
+Automatic `memory_handoff_list` also includes expired recoverable claims (unexpired retention, version 1, not continuity-managed); existing token/generation fences still decide the winner.
 
 Returns bounded metadata, `observed_at`, `has_more`, `next_cursor`, and
 `cache_policy: no_store`. Summary and note previews are capped at 512 characters

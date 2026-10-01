@@ -203,7 +203,8 @@ async def list_pending_handoffs(*, project_id: str, unit_id: str | None = None, 
             SELECT id, unit_id, phase_id, from_user, result_status, classification, task_summary,
                    handoff_note, created_at, expires_at
             FROM handoffs
-            WHERE project_id=$1 AND status='pending' AND expires_at > now() AND handoff_version=1 AND NOT continuity_managed
+            WHERE project_id=$1 AND (status='pending' OR (status='claimed' AND claim_token_digest IS NOT NULL
+                  AND claim_lease_expires_at <= now())) AND expires_at > now() AND handoff_version=1 AND NOT continuity_managed
               AND ($2::text IS NULL OR unit_id=$2)
               AND ($3::uuid IS NULL OR (created_at,id) < (
                   SELECT created_at,id FROM handoffs WHERE id=$3::uuid AND project_id=$1))
