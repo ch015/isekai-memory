@@ -35,3 +35,26 @@ SQLite 파일과 HTTP 프로세스를 임시 디렉터리에 만들었으며 실
 - 검색 결과의 권한·분류 필터와 출처 검증은 공통 로직을 사용한다. SQLite의 관련도 점수는 PostgreSQL과 다를 수 있다.
 
 실행 방법과 저장·백업 범위는 [로컬 SQLite 운영 안내](local-sqlite.md)를 따른다.
+
+## Docker 기본 SQLite 실행 검증 — 2026-10-01
+
+Docker 이미지의 기본 DB를 `/data/memory.db`로 설정하고 `appuser` 쓰기 권한과 `/data` 볼륨을 추가했다.
+환경 변수로 기본값을 제공하므로 토큰 발급도 같은 DB를 사용하고, 기존 Compose의 PostgreSQL URL은 우선한다.
+위 전체 pytest 결과는 SQLite 저장 계층 도입 당시 기록이며, 이번 Docker 변경에서는 아래 실행 검증을 수행했다.
+
+| 검증 | 결과 |
+| --- | --- |
+| `scripts/build-image.sh`로 실제 ARM64 이미지 빌드 | 통과 |
+| 기본 CMD로 HTTP 시작, 호스트 공개 포트의 `/ready` | `backend: sqlite`, 스키마 자동 생성 확인 |
+| 실행 사용자·DB 권한 | non-root, 소유자 일치, DB 파일 0600 |
+| DB 옵션 없이 `docker exec ... --issue-token` | 동일 SQLite DB 발급 및 HTTP 인증 통과 |
+| 일반 디렉터리 프로젝트·한글 작업 이력 저장/검색 | 통과 |
+| 컨테이너 삭제 후 동일 named volume으로 새 컨테이너 생성 | 기존 토큰·프로젝트·작업 이력 유지 |
+| 토큰 회수 및 미인증 접근 | 회수 후 401, 미인증 401 |
+| PostgreSQL 환경 변수 명시 | 컨테이너 내 설정이 PostgreSQL URL을 선택 |
+| 기존 Compose 설정 해석 | PostgreSQL URL·마이그레이션·HTTP 명령 유지; 스택 재기동은 하지 않음 |
+
+이 Mac의 ARM Docker VM에서는 기존 OpenSSL CPU 감지 문제로 기본 실행이 종료 코드 132로 중단됐다.
+`cryptography 50.0.2` 단독 import에서도 재현했고, `OPENSSL_armcap=0`을 전달해 위 실행 검증을 통과했다.
+우회 설정은 해당 환경의 실행 옵션이며 이미지의 전역 기본값으로 추가하지 않았다.
+임시 컨테이너·볼륨만 사용하고 검증 후 제거했다. 사용자의 기존 서버와 DB는 변경하지 않았다.

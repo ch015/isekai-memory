@@ -28,6 +28,12 @@ isekai-memory --sqlite ~/.local/share/isekai-memory/memory.db \
 `read,write,projects` 토큰을 발급하고 기존 프로젝트 구성원 설정으로 공유 범위를 정한다.
 원래 사용 중인 ADE·Foundation·Presets는 DB 종류를 알 필요가 없으며 기존 HTTP API로 연결한다.
 
+Docker 이미지도 기본적으로 SQLite를 사용하며 DB 경로는 `/data/memory.db`다.
+`-v isekai-memory-data:/data`로 같은 named volume을 재사용하면 컨테이너 교체 후에도 데이터가 유지된다.
+컨테이너 내부에서는 `docker exec isekai-memory isekai-memory --issue-token ...`처럼
+`--sqlite` 없이도 이미지의 DB 환경 설정을 사용한다. 빌드·실행 전체 명령은
+[Docker 운영 안내](local-docker.md#sqlite-기본-실행)를 따른다.
+
 MCP 프로세스를 직접 실행하는 클라이언트는 다음 명령을 사용한다.
 stdio의 인증 경계는 기존과 같이 해당 프로세스를 실행하는 OS 사용자다.
 

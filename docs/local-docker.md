@@ -1,12 +1,42 @@
 # 로컬 Docker 빌드·실행
 
-AWS/ECS/RDS/ECR 배포 설정이 아닌 **개인 개발 PC용 Memory 서버 + PostgreSQL** 구성이다.
-Core/TUI는 기존처럼 호스트에서 실행하고 이 Memory HTTP 주소로 연결한다.
-Docker Engine/Desktop과 Compose v2가 필요하다. 로컬 Python 설치는 필요 없다.
+Docker 이미지는 기본적으로 **SQLite 파일을 사용하는 Memory 서버**를 실행한다.
+ADE는 호스트에서 실행하고 이 Memory HTTP 주소로 연결한다.
+Docker Engine/Desktop이 필요하며, 로컬 Python이나 별도 DB 서버 설치는 필요 없다.
+기존 Compose 구성은 PostgreSQL 모드를 유지하며 Compose v2가 필요하다.
+AWS/ECS/RDS/ECR 배포 설정은 별도다.
 
-DB 서버 없이 파일에 저장하려면 [SQLite 모드](local-sqlite.md)를 사용할 수 있다. 아래 Compose 구성은 PostgreSQL 모드다.
+## SQLite 기본 실행
 
-## 한 번에 실행
+```sh
+./scripts/build-image.sh
+docker run -d --name isekai-memory --restart unless-stopped \
+  -p 127.0.0.1:8100:8100 -v isekai-memory-data:/data \
+  isekai-memory:local
+```
+
+이미지의 `ISEKAI_MEMORY_DATABASE_URL` 기본값은 `sqlite:////data/memory.db`다.
+첫 실행 시 DB·스키마를 자동 생성하고, 이후에는 같은 파일을 재사용한다.
+컨테이너를 교체할 때도 반드시 같은 `isekai-memory-data:/data` 볼륨을 지정한다.
+명시적인 볼륨 없이 실행하면 Docker가 익명 볼륨을 만들지만, 새 컨테이너는 이를 자동 재사용하지 않는다.
+호스트 디렉터리를 직접 마운트한다면 이미지의 `appuser`에게 쓰기 권한이 있어야 한다.
+
+```sh
+docker exec isekai-memory isekai-memory --issue-token \
+  --project-id directory --user-id alice --scopes admin,projects
+docker exec isekai-memory python -c \
+  "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8100/ready').read().decode())"
+docker logs --tail 100 isekai-memory
+```
+
+ADE에는 `http://127.0.0.1:8100/mcp`와 발급된 토큰을 입력한다.
+토큰 발급 명령에도 이미지의 DB 환경 설정이 적용되므로 같은 SQLite 파일을 사용한다.
+파일 백업·동시 접근 범위는 [SQLite 운영 안내](local-sqlite.md)를 따른다.
+기존 PostgreSQL 데이터는 자동 이동하지 않는다.
+Apple Silicon Docker VM에서 시작 직후 종료 코드 132가 발생하면 아래의
+[OpenSSL ARM 우회 설정](#apple-silicon에서-시작-직후-종료-코드-132가-발생할-때)을 적용한다.
+
+## PostgreSQL Compose 실행
 
 isekai-memory 저장소 루트에서:
 
@@ -58,9 +88,10 @@ Memory 애플리케이션 이미지만 만들려면 Nunchi Asset의
 ```
 
 기본 태그는 `isekai-memory:local`이다. 이미지에 비밀번호나 OAuth 비밀값을 넣지 않는다.
-실행 시에는 `.env.template`을 `.env.image`로 복사해 PostgreSQL 연결 설정을 제공하고
-마이그레이션을 먼저 적용해야 한다. `docker run --env-file .env.image` 사용 예시는 README의
-Docker 절을 따른다. Compose 전용 설정 예시는 기존 `.env.example`에 있다.
+기본 SQLite 실행에는 환경 파일이 필요 없다. 선택 설정은 `.env.template`을 `.env.image`로
+복사한 뒤 `docker run --env-file .env.image`로 전달한다. PostgreSQL을 사용한다면 DB URL을
+변경하고 `PGPASSWORD`를 설정한 다음 마이그레이션을 먼저 적용한다. README의 Docker 절을 따른다.
+Compose 전용 설정 예시는 기존 `.env.example`에 있다.
 아래 `local.sh build`는 Compose 전용 이미지 태그를 사용한다.
 
 ```sh
@@ -172,7 +203,17 @@ ARM Docker VM에서 `cryptography.hazmat.bindings._rust`를 불러올 때
 `Illegal instruction`이 발생한다면 OpenSSL의 CPU 기능 감지 경로를 확인한다.
 2026-09-17 로컬 환경에서는 `cryptography 50.0.1`로 이 오류를 재현했고,
 `OPENSSL_armcap=0`을 전달하면 모듈 로딩과 RSA/JWT·AES-GCM 검증이 통과했다.
-해당 환경에서만 `.env`에 다음을 추가한 뒤 `./scripts/local.sh up`으로 다시 생성한다.
+2026-10-01 SQLite 이미지 검증에서도 `cryptography 50.0.2`를 단독 import할 때 같은 증상을 확인했다.
+해당 환경에서만 `docker run`에 `-e OPENSSL_armcap=0`을 추가한다. SQLite 실행 예시:
+
+```sh
+docker run -d --name isekai-memory --restart unless-stopped \
+  -e OPENSSL_armcap=0 \
+  -p 127.0.0.1:8100:8100 -v isekai-memory-data:/data \
+  isekai-memory:local
+```
+
+Compose를 사용한다면 `.env`에 다음을 추가한 뒤 `./scripts/local.sh up`으로 다시 생성한다.
 
 ```dotenv
 OPENSSL_armcap=0

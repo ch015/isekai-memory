@@ -59,7 +59,8 @@ Use the same `--sqlite FILE` option when issuing tokens or running `--mode stdio
 Existing HTTP authentication, project membership and all 89 tools remain available.
 No Alembic command is needed in this mode. SQLite 3.38+ is required.
 See [SQLite setup, ADE connection and backups](docs/local-sqlite.md).
-PostgreSQL remains the default unless SQLite is explicitly selected; existing DB data is not migrated automatically.
+Host installations default to PostgreSQL unless SQLite is explicitly selected. The Docker image defaults to
+SQLite at `/data/memory.db`; existing DB data is not migrated automatically.
 
 ## Requirements
 
@@ -519,7 +520,30 @@ code changes or actual Skill installations are made by M5. See the
 
 ## Docker
 
-The image does not provision PostgreSQL or run migrations. Connect it to a migrated database; do not use `localhost` for a database in another container.
+The image runs SQLite by default, with automatic schema initialization and no separate DB server.
+Build and start it with a named volume so the same database survives container replacement:
+
+```bash
+./scripts/build-image.sh
+docker run -d --name isekai-memory --restart unless-stopped \
+  -p 127.0.0.1:8100:8100 -v isekai-memory-data:/data \
+  isekai-memory:local
+
+docker exec isekai-memory isekai-memory --issue-token \
+  --project-id directory --user-id alice --scopes admin,projects
+```
+
+Connect ADE to `http://127.0.0.1:8100/mcp` using the issued token. Token commands inherit the
+same SQLite database setting. Reuse `isekai-memory-data:/data` when replacing the container;
+without a named mount, Docker creates an anonymous volume that a new container does not automatically reuse.
+The image runs as `appuser`; host-directory bind mounts must be writable by that user.
+See [SQLite operations](docs/local-sqlite.md) for backups and file-sharing limits.
+On affected Apple Silicon Docker VMs, exit code 132 requires the documented
+[OpenSSL ARM workaround](docs/local-docker.md#apple-silicon에서-시작-직후-종료-코드-132가-발생할-때).
+
+PostgreSQL remains supported through `ISEKAI_MEMORY_DATABASE_URL`. The existing `compose.yaml`
+explicitly selects PostgreSQL and still starts its DB and migration services. For a standalone image,
+connect it to a migrated database; do not use `localhost` for a database in another container:
 
 ```bash
 docker network create isekai-memory-net
@@ -528,7 +552,7 @@ docker run -d --rm --name isekai-memory-pg --network isekai-memory-net \
   -e POSTGRES_DB=isekai_memory postgres:16
 
 cp -n .env.template .env.image
-# Edit .env.image for the target database; keep it private.
+# Replace the SQLite URL in .env.image with the PostgreSQL URL and set PGPASSWORD; keep it private.
 ./scripts/build-image.sh
 
 docker run --rm --network isekai-memory-net \
